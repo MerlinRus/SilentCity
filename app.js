@@ -3,7 +3,10 @@ const world = select('#world');
 const dialog = select('#room-dialog');
 const content = select('#room-content');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let residentNoteChange = null;
+let residentSizeKey = '';
 function cancelUiMotion() {
+  finishResidentNoteChange();
   content.getAnimations?.({ subtree: true }).forEach((animation) => animation.cancel());
   finishExplorationTransition();
 }
@@ -764,8 +767,11 @@ select('#explore-city').addEventListener('click', () => setExploration(true));
 select('#explore-return').addEventListener('click', () => setExploration(false));
 scene.addEventListener('pointerdown', () => { if (world.classList.contains('exploring')) select('#explore-hint').hidden = true; }, { passive: true });
 window.addEventListener('resize', () => { finishExplorationTransition(); centerExploration(); }, { passive: true });
-document.addEventListener('visibilitychange', () => { if (document.hidden) finishExplorationTransition(); });
-window.addEventListener('pagehide', () => finishExplorationTransition());
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { finishExplorationTransition(); finishResidentNoteChange(false); }
+  else reserveResidentSpace();
+});
+window.addEventListener('pagehide', () => { finishExplorationTransition(); finishResidentNoteChange(false); });
 async function toggleFullscreen() {
   try {
     if (document.fullscreenElement) await document.exitFullscreen();
@@ -836,7 +842,71 @@ function mixerRoom() {
   });
   syncMixer();
 }
+function commitResidentNote(change) {
+  if (!change || change !== residentNoteChange || change.committed || !dialog.open || !content.contains(change.body)) return;
+  const note = chooseResidentNote(change.index);
+  change.title.textContent = note.title;
+  change.body.textContent = note.text;
+  change.committed = true;
+}
+function finishResidentNoteChange(commit = true) {
+  const change = residentNoteChange;
+  if (!change) return;
+  if (commit) commitResidentNote(change);
+  residentNoteChange = null;
+  content.classList.remove('changing-note');
+  change.button.removeAttribute('aria-busy');
+}
+function changeResidentNote(index) {
+  if (residentNoteChange) return;
+  residentNoteChange = { index, title: select('#room-title'), body: select('.resident-note'), button: select('#resident-more'), committed: false };
+  if (reducedMotion.matches || !document.documentElement.classList.contains('pointer-motion') || !residentNoteChange.body.animate) {
+    finishResidentNoteChange();
+    return;
+  }
+  residentNoteChange.button.setAttribute('aria-busy', 'true');
+  content.classList.add('changing-note');
+}
+function reserveResidentSpace(index = litResident, retry = true) {
+  if (!dialog.open || !dialog.classList.contains('resident-dialog') || document.hidden) return;
+  finishResidentNoteChange();
+  const title = select('#room-title');
+  const body = select('.resident-note');
+  const titleStyle = getComputedStyle(title);
+  const bodyStyle = getComputedStyle(body);
+  const titleWidth = titleStyle.width;
+  const bodyWidth = bodyStyle.width;
+  const key = [index, titleWidth, bodyWidth, titleStyle.font, bodyStyle.font].join('|');
+  if (residentSizeKey === key) return;
+  const probe = document.createElement('div');
+  probe.className = 'resident-measure';
+  probe.setAttribute('aria-hidden', 'true');
+  probe.inert = true;
+  const stacks = [document.createElement('div'), document.createElement('div')];
+  residents[index].notes.forEach((note) => {
+    [title, body].forEach((element, column) => {
+      const sample = element.cloneNode(false);
+      sample.removeAttribute('id');
+      sample.removeAttribute('aria-live');
+      sample.removeAttribute('aria-atomic');
+      sample.style.cssText = `grid-area:1 / 1;min-height:0;height:auto;margin:0;width:${column === 0 ? titleWidth : bodyWidth}`;
+      sample.textContent = column === 0 ? note.title : note.text;
+      stacks[column].append(sample);
+    });
+  });
+  probe.append(...stacks);
+  content.append(probe);
+  const titleHeight = stacks[0].offsetHeight + 1;
+  const bodyHeight = stacks[1].offsetHeight + 1;
+  probe.remove();
+  title.style.minHeight = `${titleHeight}px`;
+  body.style.minHeight = `${bodyHeight}px`;
+  residentSizeKey = key;
+  if (retry && (getComputedStyle(title).width !== titleWidth || getComputedStyle(body).width !== bodyWidth)) reserveResidentSpace(index, false);
+}
 function residentRoom(index) {
+  finishResidentNoteChange(false);
+  residentSizeKey = '';
   const resident = residents[index];
   const note = chooseResidentNote(index);
   lightResident(index);
@@ -852,21 +922,22 @@ function residentRoom(index) {
     </svg>
     <blockquote class="resident-note" aria-live="polite" aria-atomic="true">${note.text}</blockquote><p class="resident-signature"><strong>${resident.name}</strong><span>${resident.place}</span></p>
     <div class="resident-actions"><button class="dialog-action" id="resident-more">Ещё записка ${svgIcon('notes')}</button><button class="dialog-action secondary" id="resident-next">Другое окно ${svgIcon('external')}</button><button class="mix-clear" id="resident-return">Вернуться в город</button></div>`;
-  select('#resident-more').addEventListener('click', () => {
-    const nextNote = chooseResidentNote(index);
-    select('#room-title').textContent = nextNote.title;
-    select('.resident-note').textContent = nextNote.text;
-    revealContent(select('#room-title'));
-    revealContent(select('.resident-note'));
+  select('#resident-more').addEventListener('click', () => changeResidentNote(index));
+  select('.resident-note').addEventListener('animationiteration', (event) => {
+    if (event.animationName === 'resident-note-swap' && residentNoteChange?.body === event.currentTarget) commitResidentNote(residentNoteChange);
+  });
+  select('.resident-note').addEventListener('animationend', (event) => {
+    if (event.animationName === 'resident-note-swap' && residentNoteChange?.body === event.currentTarget) finishResidentNoteChange(false);
   });
   select('#resident-next').addEventListener('click', () => {
     residentRoom((litResident + 1) % residents.length);
     select('#resident-next').focus({ preventScroll: true });
   });
   select('#resident-return').addEventListener('click', () => dialog.close());
-  if (dialog.open) revealContent(content);
+  if (dialog.open) { reserveResidentSpace(index); revealContent(content); }
 }
 function openRoom(room) {
+  finishResidentNoteChange(false);
   finishExplorationTransition();
   dialog.classList.toggle('mixer-dialog', room === 'mixer');
   dialog.classList.toggle('resident-dialog', room === 'resident');
@@ -894,7 +965,10 @@ function openRoom(room) {
   if (room === 'help') {
     content.innerHTML = `<span class="room-eyebrow">Добро пожаловать в квартал</span><h2 id="room-title">Здесь можно выдохнуть.</h2><p>Нажми на светящуюся метку в городе. В кафе — три музыкальные волны. В окне с карандашом — место для мыслей. Под часами — 25 минут тишины для одного дела.</p><p>Ползунки внизу меняют дождь и музыку. «Побыть здесь» убирает заголовок и включает звук.</p><div class="help-keys"><span><kbd>M</kbd>звук</span><span><kbd>F</kbd>весь экран</span><span><kbd>Esc</kbd>назад</span></div>`;
   }
-  if (!dialog.open) dialog.showModal();
+  if (!dialog.open) {
+    dialog.showModal();
+    if (room === 'resident') reserveResidentSpace();
+  }
   else if (room !== 'resident') revealContent(content);
   syncSceneActivity();
 }
@@ -914,6 +988,7 @@ select('#station').addEventListener('click', () => openRoom(layers.some((layer) 
 select('#mixer').addEventListener('click', () => openRoom('mixer'));
 syncMixer();
 select('#help').addEventListener('click', () => openRoom('help'));
+dialog.addEventListener('close', () => finishResidentNoteChange(false));
 select('#close-dialog').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', (event) => {
   const bounds = dialog.getBoundingClientRect();
@@ -949,6 +1024,7 @@ function updateVisualViewport() {
 updateVisualViewport();
 window.visualViewport?.addEventListener('resize', updateVisualViewport, { passive: true });
 window.visualViewport?.addEventListener('scroll', updateVisualViewport, { passive: true });
-window.addEventListener('resize', updateVisualViewport, { passive: true });
+window.addEventListener('resize', () => { updateVisualViewport(); reserveResidentSpace(); }, { passive: true });
+document.fonts?.ready.then(() => { residentSizeKey = ''; reserveResidentSpace(); });
 window.addEventListener('pagehide', () => { clearInterval(melodyInterval); if (activeTrack) activeTrack.element.pause(); layers.forEach((layer) => layer.track?.element.pause()); if (audio) audio.suspend(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted && audio) { if (playing) { audio.resume().catch(() => {}); if (musicLevel > 0) activeTrack?.element.play().catch(() => toast('Нажми на воспроизведение, чтобы вернуть звук.')); layers.forEach((layer) => startLayer(layer)); } melodyInterval = setInterval(() => { if (playing) playNote(); }, 3200); } });

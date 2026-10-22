@@ -395,8 +395,12 @@ button:active { filter: brightness(1.15); }
 }
 
 .intro, .city-caption { transition: none; }
+.resident-measure { position: absolute; inset: 0 auto auto 0; width: 100%; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
+.resident-measure > div { display: grid; }
+@keyframes resident-note-swap { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: no-preference) {
   :root { --ease-ui: cubic-bezier(.23, 1, .32, 1); }
+  .pointer-motion #room-content.changing-note :is(#room-title, .resident-note) { animation: resident-note-swap 140ms cubic-bezier(.37,0,.63,1) 2 alternate both; }
   .pointer-motion .header, .pointer-motion .intro, .pointer-motion .city-caption,
   .pointer-motion .sound-dock, .pointer-motion .bottom-note,
   .pointer-motion #return, .pointer-motion #explore-city {
