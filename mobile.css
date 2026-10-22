@@ -181,6 +181,8 @@ button:active { filter: brightness(1.15); }
 }
 .explore-exit { top: max(14px, var(--safe-top)); left: max(16px, var(--safe-left)); }
 .explore-exit:not([hidden]) { display: inline-flex; }
+.world:not(.exploring) :is(.explore-exit, .explore-hint) { opacity: 0; visibility: hidden; pointer-events: none; }
+.world.city-hud-transitioning :is(.header, .intro, .city-caption, .sound-dock, .bottom-note, #return, #explore-city, .explore-exit, .explore-hint) { transition: none; }
 .explore-hint {
   position: absolute;
   z-index: 2;

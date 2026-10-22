@@ -646,9 +646,17 @@ select('#return').addEventListener('click', leaveCity);
 const scene = select('#scene');
 const citySvg = scene.querySelector('svg');
 let explorationAnimation = null;
+const explorationHudAnimations = [];
 let explorationTarget = null;
 let explorationScroll = { left: 0, top: 0 };
 const cityHud = document.querySelectorAll('.header, .intro, .city-caption, .sound-dock, .bottom-note, #return, #explore-city');
+const explorationSurfaces = [...cityHud, select('#explore-return'), select('#explore-hint')];
+function hudFrame(element) {
+  const style = getComputedStyle(element);
+  const present = element.getClientRects().length > 0;
+  const visible = present && style.visibility === 'visible';
+  return { opacity: visible ? Number(style.opacity) : 0, transform: style.transform, visible, present };
+}
 function centerExploration() {
   if (!world.classList.contains('exploring')) return;
   const scale = scene.querySelector('svg').getBoundingClientRect().width / 1600;
@@ -659,8 +667,9 @@ function applyExploration(enabled) {
   cityHud.forEach((element) => { element.inert = enabled; });
   world.classList.toggle('exploring', enabled);
   select('#explore-city').setAttribute('aria-expanded', String(enabled));
-  select('#explore-return').hidden = !enabled;
-  select('#explore-hint').hidden = !enabled;
+  select('#explore-return').hidden = false;
+  select('#explore-return').inert = !enabled;
+  select('#explore-hint').hidden = false;
   scene.tabIndex = enabled ? 0 : -1;
   if (enabled) {
     centerExploration();
@@ -688,12 +697,15 @@ function finishExplorationTransition(target = explorationTarget) {
     explorationAnimation.cancel();
     explorationAnimation = null;
   }
+  explorationHudAnimations.forEach((animation) => animation.cancel());
+  explorationHudAnimations.length = 0;
   world.classList.remove('city-transitioning');
   if (world.classList.contains('exploring') !== target) applyExploration(target);
   else {
     scene.scrollLeft = explorationScroll.left;
     scene.scrollTop = explorationScroll.top;
   }
+  world.classList.remove('city-hud-transitioning');
   syncSceneActivity();
 }
 function setExploration(enabled) {
@@ -706,21 +718,45 @@ function setExploration(enabled) {
   if (explorationTarget === enabled) return;
   const bounds = world.getBoundingClientRect();
   const first = cityFrame(bounds);
+  const firstHud = explorationSurfaces.map(hudFrame);
   if (explorationAnimation) {
     explorationAnimation.onfinish = null;
     explorationAnimation.cancel();
   }
+  explorationHudAnimations.forEach((animation) => animation.cancel());
+  explorationHudAnimations.length = 0;
   explorationTarget = enabled;
   world.classList.remove('city-transitioning');
+  world.classList.add('city-hud-transitioning');
   applyExploration(enabled);
   const last = cityFrame(bounds);
+  const lastHudFrames = explorationSurfaces.map(hudFrame);
   explorationScroll = { left: scene.scrollLeft, top: scene.scrollTop };
   if (!first || !last) { finishExplorationTransition(); return; }
   world.classList.add('city-transitioning');
   scene.scrollLeft = 0;
   scene.scrollTop = 0;
-  const animation = citySvg.animate([first, last], { duration: 650, easing: 'cubic-bezier(.37,0,.63,1)', fill: 'both' });
+  const timing = { duration: 650, easing: 'cubic-bezier(.37,0,.63,1)', fill: 'both' };
+  const startTime = document.timeline?.currentTime;
+  const animation = citySvg.animate([first, last], timing);
+  if (startTime != null) animation.startTime = startTime;
   explorationAnimation = animation;
+  explorationSurfaces.forEach((element, index) => {
+    const lastHud = lastHudFrames[index];
+    if ((!firstHud[index].visible && !lastHud.visible) || !lastHud.present) return;
+    const frames = [
+      { opacity: firstHud[index].opacity, visibility: 'visible' },
+      { opacity: lastHud.opacity, visibility: 'visible' }
+    ];
+    const offset = element.classList.contains('header') ? -24 : element.id === 'explore-return' ? 24 : 0;
+    if (offset) {
+      frames[0].transform = firstHud[index].visible ? firstHud[index].transform : `translateY(${offset}px)`;
+      frames[1].transform = lastHud.visible ? lastHud.transform : `translateY(${offset}px)`;
+    }
+    const hudAnimation = element.animate(frames, timing);
+    if (startTime != null) hudAnimation.startTime = startTime;
+    explorationHudAnimations.push(hudAnimation);
+  });
   animation.onfinish = () => { if (explorationAnimation === animation) finishExplorationTransition(); };
   syncSceneActivity();
 }
