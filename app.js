@@ -40,7 +40,7 @@ function random() {
 }
 
 const points = (coordinates) => coordinates.map((point) => point.join(',')).join(' ');
-const polygon = (coordinates, fill, attributes = '') => `<polygon points="${points(coordinates)}" fill="${fill}" ${attributes}/>`;
+const polygon = (coordinates, fill, attributes = '') => `<polygon points="${points(coordinates)}" fill="${fill}" ${fill === 'url(#reflection)' ? 'class="ground-reflection"' : ''} ${attributes}/>`;
 const residents = [
   { name: 'Лена', place: 'Шестой этаж · окно с чайником', row: 0, column: 1, object: 'M57 76h19v13H57Zm19 2h4a4 4 0 0 1 0 8h-4M61 70c-4-4 4-6 0-10m7 10c-4-4 4-6 0-10', notes: [
     { id: 'lena-tea', title: 'Чайник уже закипел.', text: 'Опять заварила на двоих, хотя дома одна. Вторую чашку мысленно оставляю тебе. Сиди сколько хочется.' },
@@ -123,7 +123,7 @@ function building({ x, y, width, height, depth, rows, columns, color = '#263b3b'
   city.push(polygon([[x, y], [x + depth, y - recess], [x + width + depth, y + slope - recess], [x + width, y + slope]], roof));
   city.push(polygon([[x, y], [x + width, y + slope], [x + width, y + slope + height], [x, y + height]], color));
   city.push(polygon([[x + width, y + slope], [x + width + depth, y + slope - recess], [x + width + depth, y + slope - recess + height], [x + width, y + slope + height]], side));
-  city.push(`<path d="M${x},${y + 5} l${width},${slope} l${depth},${-recess}" stroke="#98a99a" stroke-opacity=".15" fill="none" stroke-width="3"/>`);
+  city.push(`<path class="roof-edge" d="M${x},${y + 5} l${width},${slope} l${depth},${-recess}" stroke="#98a99a" stroke-opacity=".15" fill="none" stroke-width="3"/>`);
   for (let row = 0; row < rows; row++) {
     const windowY = y + 30 + row * ((height - 50) / rows);
     if (detail) city.push(`<path d="M${x} ${windowY + 36}l${width} ${slope}" stroke="#101f23" stroke-opacity=".28" fill="none"/>`);
@@ -136,9 +136,9 @@ function building({ x, y, width, height, depth, rows, columns, color = '#263b3b'
       const tint = random() > .65 ? '#d4bd8b' : '#b79865';
       const shape = [[windowX, windowY + offset], [windowX + windowWidth, windowY + offset + windowWidth * .2], [windowX + windowWidth, windowY + offset + windowWidth * .2 + windowHeight], [windowX, windowY + offset + windowHeight]];
       const nightWindow = isLit && detail && (row + column) % 2 === 0;
-      if (nightWindow) {
+      if (isLit) {
         city.push(polygon(shape, '#142a2d', 'opacity=".7"'));
-        city.push(`<g class="night-window night-window-${1 + (row + column) % 3}">`);
+        city.push(`<g class="window-lamp${nightWindow ? ` night-window night-window-${1 + (row + column) % 3}` : ''}">`);
       }
       city.push(polygon(shape, isLit ? tint : '#142a2d', `opacity="${isLit ? .55 + random() * .4 : .7}"`));
       if (isLit && detail) {
@@ -146,7 +146,7 @@ function building({ x, y, width, height, depth, rows, columns, color = '#263b3b'
         city.push(`<path d="M${windowX + windowWidth * .55} ${windowY + offset + windowWidth * .11}v${windowHeight}" stroke="#273b37" stroke-width="2" opacity=".75"/>`);
         if (random() > .5) city.push(polygon([[windowX, windowY + offset], [windowX + windowWidth * .35, windowY + offset + 2], [windowX + windowWidth * .24, windowY + offset + windowHeight], [windowX, windowY + offset + windowHeight]], '#635f48', 'opacity=".6"'));
       }
-      if (nightWindow) city.push('</g>');
+      if (isLit) city.push('</g>');
       if (x === 858) {
         const residentIndex = residents.findIndex((resident) => resident.row === row && resident.column === column);
         if (residentIndex !== -1) residentWindows[residentIndex] = { x: windowX, y: windowY + offset, width: windowWidth, height: windowHeight };
@@ -221,7 +221,7 @@ function tree(x, y, scale = 1) {
 }
 tree(773, 637, .92); tree(1295, 660, 1.03); tree(1330, 682, .9); tree(1470, 758, 1.5); tree(572, 686, 1.2); tree(1370, 718, .92);
 function lamp(x, y, height = 100) {
-  city.push(`<g><ellipse cx="${x}" cy="${y + 2}" rx="49" ry="16" fill="url(#lamp)"/><path d="M${x} ${y}v-${height}q0-10 13-7l10 2" fill="none" stroke="#6c7c6b" stroke-width="2.5"/><ellipse cx="${x + 21}" cy="${y - height - 3}" rx="8" ry="3" fill="#ecd7a3"/><ellipse cx="${x + 21}" cy="${y - height + 12}" rx="53" ry="60" fill="url(#lamp)"/><path d="m${x + 18} ${y + 8}-28 63 10 2 29-64" fill="url(#reflection)"/></g>`);
+  city.push(`<g class="street-lamp"><ellipse class="lamp-glow" cx="${x}" cy="${y + 2}" rx="49" ry="16" fill="url(#lamp)"/><path d="M${x} ${y}v-${height}q0-10 13-7l10 2" fill="none" stroke="#6c7c6b" stroke-width="2.5"/><ellipse class="lamp-glow" cx="${x + 21}" cy="${y - height - 3}" rx="8" ry="3" fill="#ecd7a3"/><ellipse class="lamp-glow" cx="${x + 21}" cy="${y - height + 12}" rx="53" ry="60" fill="url(#lamp)"/><path class="ground-reflection lamp-glow" d="m${x + 18} ${y + 8}-28 63 10 2 29-64" fill="url(#reflection)"/></g>`);
 }
 lamp(799, 699, 105); lamp(1210, 777, 105); lamp(1445, 651, 90); lamp(654, 630, 85);
 city.push(`<g transform="translate(1330 735) rotate(-28)"><ellipse rx="43" ry="21" fill="#071b2266"/><rect x="-34" y="-20" width="68" height="30" rx="10" fill="#60736c"/><rect x="-16" y="-19" width="31" height="28" rx="7" fill="#233b3a"/><path d="M-31-10h10m-10 11h10M21-10h8M21 1h8" stroke="#d6caa0" stroke-width="3"/></g>`);
@@ -259,7 +259,8 @@ residents.forEach((resident, index) => {
   </g>`);
 });
 city.push('</svg>');
-select('#scene').innerHTML = city.join('');
+const cityPalette = { '263b3b': '939d8d', '1c3032': '70817a', '344947': 'aab09b', '243a3b': '96aaa1', '203537': '819b95', '2b4140': 'a4b2a2', '2a4140': '93a997', '2e4140': '99aa9b', '344540': 'a7ad97', '233a37': '808f7d', '41514a': 'bdc1a5', '142a2d': '556f6a', '11282c': '4a6664', '253a3b': '829992', '172b31': '758d87', '203d32': '4b7654', '3c5140': '779465', '152a28': '344d40', '11262b': '819a8f', '0c2127': '6d8781', '455650': 'abb49d', '2b3e3d': '82998c' };
+select('#scene').innerHTML = city.join('').replace(/#([0-9a-f]{6})(?![0-9a-f])/gi, (colour, key) => cityPalette[key] ? `var(--city-${key},${colour})` : colour);
 const residentButtons = [...document.querySelectorAll('.resident-window')];
 const lastResidentIndex = residents.findIndex((resident) => resident.notes.some((note) => note.id === lastResidentNote));
 let litResident = lastResidentIndex < 0 ? Math.floor(Math.random() * residents.length) : (lastResidentIndex + 1) % residents.length;
@@ -280,7 +281,9 @@ function advanceCityLife() {
   world.classList.toggle('cat-away', cityLifeTick % 8 === 5 || cityLifeTick % 8 === 6);
   world.classList.toggle('entrance-lit', cityLifeTick % 6 === 1);
   if (cityLifeTick % 10 === 2) cityTram.classList.add('tram-passing');
+  if (world.dataset.weather === 'storm' && cityLifeTick % 3 === 0) world.classList.add('lightning');
 }
+select('.weather-lightning').addEventListener('animationend', () => world.classList.remove('lightning'));
 cityTram.addEventListener('animationend', (event) => {
   if (event.animationName === 'city-tram-pass') cityTram.classList.remove('tram-passing');
 });
@@ -295,11 +298,13 @@ const context = canvas.getContext('2d');
 let viewportWidth = 0;
 let viewportHeight = 0;
 let drops = [];
-let rainLevel = .55;
+let rainLevel = 0;
+let snowing = false;
+let weatherWind = 0;
 let lastFrame = null;
 let rainFrame;
 const rainFrameDuration = 1000 / 30;
-const rainColors = ['rgba(177,205,200,.12)', 'rgba(177,205,200,.20)', 'rgba(177,205,200,.29)'];
+let rainColors = ['rgba(177,205,200,.12)', 'rgba(177,205,200,.20)', 'rgba(177,205,200,.29)'];
 function resizeRain() {
   viewportWidth = world.clientWidth;
   viewportHeight = world.clientHeight;
@@ -311,7 +316,7 @@ function resizeRain() {
 }
 function drawRain(timestamp) {
   rainFrame = undefined;
-  if (scenePaused()) return;
+  if (scenePaused() || !rainLevel) return;
   if (lastFrame !== null && timestamp - lastFrame < rainFrameDuration - .1) {
     rainFrame = requestAnimationFrame(drawRain);
     return;
@@ -323,13 +328,15 @@ function drawRain(timestamp) {
   for (let index = 0; index < count; index++) {
     const drop = drops[index];
     if (!reducedMotion.matches) {
-      drop.y += drop.speed * delta;
-      drop.x -= drop.speed * delta * .24;
+      const speed = snowing ? drop.speed * .07 : drop.speed;
+      drop.y += speed * delta;
+      drop.x -= speed * delta * (snowing ? .15 + weatherWind / 80 : .18 + weatherWind / 100);
       if (drop.y > viewportHeight + 30) { drop.y = -30; drop.x = random() * (viewportWidth + 200); }
       if (drop.x < -30) drop.x = viewportWidth + 30;
     }
   }
-  context.lineWidth = .65;
+  context.lineWidth = snowing ? 2 : .65;
+  context.lineCap = snowing ? 'round' : 'butt';
   for (let group = 0; group < rainColors.length; group++) {
     context.strokeStyle = rainColors[group];
     context.beginPath();
@@ -337,7 +344,7 @@ function drawRain(timestamp) {
       const drop = drops[index];
       if (drop.group !== group) continue;
       context.moveTo(drop.x, drop.y);
-      context.lineTo(drop.x - drop.length * .24, drop.y + drop.length);
+      context.lineTo(drop.x - (snowing ? 0 : drop.length * .24), drop.y + (snowing ? 1 : drop.length));
     }
     context.stroke();
   }
@@ -347,6 +354,7 @@ function restartRain() {
   cancelAnimationFrame(rainFrame);
   rainFrame = undefined;
   lastFrame = null;
+  context.clearRect(0, 0, viewportWidth, viewportHeight);
   if (!scenePaused()) drawRain(0);
 }
 function syncSceneActivity() {
@@ -355,7 +363,7 @@ function syncSceneActivity() {
     world.classList.remove('cat-turned', 'cat-away', 'entrance-lit');
     cityTram.classList.remove('tram-passing');
   }
-  updateNightLighting(new Date());
+  updateClock();
   restartRain();
   scheduleCityLife();
 }
@@ -1083,6 +1091,7 @@ function openRoom(room) {
   dialog.classList.toggle('resident-dialog', room === 'resident');
   if (room === 'radio') radioRoom();
   if (room === 'live-radio') liveRadioRoom();
+  if (room === 'weather') weatherRoom();
   if (room === 'mixer') mixerRoom();
   if (room === 'resident') residentRoom(litResident);
   if (room === 'notes') {
@@ -1146,16 +1155,104 @@ document.addEventListener('keydown', (event) => {
 });
 function updateNightLighting(now) {
   if (scenePaused()) return;
-  const hour = now.getHours();
-  const level = hour === 0 ? 1 + Math.floor(now.getMinutes() / 20) : hour < 6 ? 3 : 0;
+  const [hour, minute] = window.CityWeather.formatTime(now).split(':').map(Number);
+  const level = hour === 0 ? 1 + Math.floor(minute / 20) : hour < 6 ? 3 : 0;
   if (world.dataset.nightLevel !== String(level)) world.dataset.nightLevel = String(level);
 }
-function updateClock() {
-  const now = new Date();
-  select('#clock').textContent = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  select('#clock').dateTime = now.toISOString();
-  updateNightLighting(now);
+let weatherSnapshot = null;
+let weatherOffset = 0;
+let weatherPending = false;
+let weatherLastFetch = 0;
+let climateSignature = '';
+const weatherIcons = {
+  clear: 'M16 12a4 4 0 1 1-8 0 4 4 0 1 1 8 0M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2',
+  moon: 'M16 3a9 9 0 1 0 5 15A11 11 0 0 1 16 3Z',
+  cloudy: 'M7 17a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 9H7Z',
+  rain: 'M7 14a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 9M7 18l-1 3m6-3-1 3m6-3-1 3',
+  snow: 'M12 2v20M3 7l18 10M3 17 21 7M9 4l3 3 3-3M9 20l3-3 3 3M4 10l4-1-1-4M17 19l-1-4 4-1',
+  fog: 'M5 8a4 4 0 0 1 7-4 4 4 0 0 1 7 4M3 12h18M5 16h14M3 20h18',
+  storm: 'M7 14a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 8M13 12l-4 6h4l-2 5'
+};
+try { weatherSnapshot = window.CityWeather.validate(JSON.parse(localStorage.getItem('after-rain-weather-v1'))); } catch {}
+function moscowNow() { return Date.now() + weatherOffset; }
+function climateIcon(frame) { return weatherIcons[frame.kind === 'clear' && frame.phase === 'night' ? 'moon' : frame.kind] || weatherIcons.cloudy; }
+function mixColour(dark, light, amount) {
+  return '#' + [0, 2, 4].map((offset) => Math.round(parseInt(dark.slice(offset, offset + 2), 16) * (1 - amount) + parseInt(light.slice(offset, offset + 2), 16) * amount).toString(16).padStart(2, '0')).join('');
 }
+function applyClimate(frame) {
+  if (scenePaused()) return;
+  const signature = `${frame.light}:${frame.kind}:${frame.cloud}:${frame.wind}:${frame.precipitation}`;
+  if (signature === climateSignature) return;
+  climateSignature = signature;
+  world.dataset.phase = frame.phase;
+  world.dataset.weather = frame.kind;
+  world.dataset.bright = String(frame.light > .55);
+  Object.entries(cityPalette).forEach(([dark, light]) => world.style.setProperty(`--city-${dark}`, mixColour(dark, light, frame.light)));
+  world.style.setProperty('--sky-top', mixColour('14272a', frame.cloud > .7 ? '9fb5b4' : 'bfd8d6', frame.light));
+  world.style.setProperty('--sky-bottom', mixColour('1c3030', frame.cloud > .7 ? 'c0cebf' : 'e1e4c7', frame.light));
+  world.style.setProperty('--cloud-colour', mixColour('536c6b', 'e5ece1', frame.light));
+  world.style.setProperty('--cloud-opacity', frame.cloud * .8);
+  world.style.setProperty('--sun-opacity', Math.max(0, 1 - frame.cloud * 1.25));
+  world.style.setProperty('--stars-opacity', frame.kind === 'unknown' ? 0 : (1 - frame.cloud) * .65);
+  world.style.setProperty('--night-light', Math.max(.08, 1 - frame.light));
+  world.style.setProperty('--ground-wet', frame.precipitation ? .85 : .08);
+  if (frame.kind !== 'storm') world.classList.remove('lightning');
+  snowing = frame.kind === 'snow';
+  weatherWind = Math.min(frame.wind, 70);
+  rainLevel = frame.precipitation;
+  rainColors = snowing ? ['#e5ece280', '#e5ece2aa', '#e5ece2cf'] : frame.light > .55 ? ['#375c5b44', '#375c5b66', '#375c5b88'] : ['rgba(177,205,200,.12)', 'rgba(177,205,200,.20)', 'rgba(177,205,200,.29)'];
+  restartRain();
+}
+function weatherRoom() {
+  const frame = window.CityWeather.frame(weatherSnapshot, moscowNow());
+  const temperature = frame.temperature === null ? 'Нет данных' : `${frame.temperature > 0 ? '+' : ''}${frame.temperature} °C`;
+  const status = !frame.usable ? 'Свежая погода временно недоступна. Не придумываем осадки: город продолжает жить по московскому времени.' : frame.stale ? 'Показаны последние доступные данные. Они могут отличаться от погоды сейчас.' : 'Погода для центра Москвы. Условия в разных районах могут отличаться.';
+  content.innerHTML = `<svg class="weather-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="${climateIcon(frame)}"/></svg><h2 id="room-title">Как сейчас в Москве.</h2><p>${status}</p><dl class="weather-facts"><div><dt>Температура</dt><dd>${temperature}</dd></div><div><dt>Небо</dt><dd>${frame.label}</dd></div><div><dt>Восход</dt><dd>${frame.sun ? window.CityWeather.formatTime(frame.sun.sunrise * 1000) : 'Нет данных'}</dd></div><div><dt>Закат</dt><dd>${frame.sun ? window.CityWeather.formatTime(frame.sun.sunset * 1000) : 'Нет данных'}</dd></div></dl><p>Время — МСК, независимо от часового пояса устройства. Свет меняется постепенно около восхода и заката.${frame.approximate ? ' Пока нет данных восхода и заката, освещение рассчитано приблизительно по положению Солнца.' : ''}</p><p>Данные: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo ${svgIcon('external')}</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Это оценка погодной модели с шагом 15 минут, не измерение у твоего окна.${weatherSnapshot ? ` Последние данные — ${window.CityWeather.formatDate(weatherSnapshot.observedAt * 1000)}, ${window.CityWeather.formatTime(weatherSnapshot.observedAt * 1000)} МСК.` : ''}</p><p>Общий кеш обновляется раз в 10 минут. Геолокацию не запрашиваем. Погода меняет картинку, но не выбранные звуки.</p>`;
+}
+async function refreshWeather() {
+  if (document.hidden || pageAway || weatherPending || Date.now() - weatherLastFetch < 600000) return;
+  weatherPending = true;
+  weatherLastFetch = Date.now();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch('weather.json', { cache: 'no-store', credentials: 'omit', mode: 'same-origin', redirect: 'error', signal: controller.signal });
+    if (!response.ok) throw new Error('Weather unavailable');
+    const body = await response.text();
+    if (body.length > 16384) throw new Error('Weather response too large');
+    const snapshot = window.CityWeather.validate(JSON.parse(body));
+    if (!snapshot) throw new Error('Invalid weather snapshot');
+    const serverTime = Date.parse(response.headers.get('Date'));
+    if (Number.isFinite(serverTime)) weatherOffset = serverTime - Date.now();
+    weatherSnapshot = snapshot;
+    try { localStorage.setItem('after-rain-weather-v1', JSON.stringify(snapshot)); } catch {}
+  } catch {} finally {
+    clearTimeout(timeout);
+    weatherPending = false;
+    updateClock();
+  }
+}
+function updateClock() {
+  if (document.hidden || pageAway) return;
+  const now = moscowNow();
+  select('#clock').textContent = window.CityWeather.formatTime(now);
+  select('#clock').dateTime = new Date(now).toISOString();
+  select('#clock').setAttribute('aria-label', `${window.CityWeather.formatTime(now)} по московскому времени`);
+  const frame = window.CityWeather.frame(weatherSnapshot, now);
+  const label = `Москва · ${frame.temperature === null ? frame.label : `${frame.temperature > 0 ? '+' : ''}${frame.temperature}° · ${frame.label}`}${frame.stale && frame.usable ? ' · данные устарели' : ''}`;
+  if (select('#weather-label').textContent !== label) select('#weather-label').textContent = label;
+  select('#weather-open').setAttribute('aria-label', `${label}. Погода и время Москвы`);
+  select('#weather-open').title = label;
+  select('#weather-icon').setAttribute('d', climateIcon(frame));
+  select('#city-greeting').textContent = frame.phase === 'night' ? 'Город засыпает.' : frame.phase === 'dawn' ? 'Город просыпается.' : frame.phase === 'dusk' ? 'Город замедляется.' : 'Город живёт.';
+  select('#resident-teaser').textContent = frame.phase === 'night' ? 'В некоторых окнах ещё горит свет.' : 'Здесь у каждого своя история.';
+  select('#meet-label').textContent = frame.phase === 'night' ? 'Кто ещё не спит?' : 'Заглянуть в окно';
+  select('#city-invitation').textContent = frame.kind === 'rain' || frame.kind === 'storm' ? 'Послушай дождь. Найди своё окно.' : frame.kind === 'snow' ? 'За окном снег. Найди своё место.' : 'Послушай город. Найди своё окно.';
+  applyClimate(frame);
+  updateNightLighting(now);
+  refreshWeather();
+}
+select('#weather-open').addEventListener('click', () => openRoom('weather'));
 updateClock(); setInterval(updateClock, 10000);
 function updateVisualViewport() {
   const viewport = window.visualViewport;

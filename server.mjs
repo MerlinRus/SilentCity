@@ -4,12 +4,12 @@ import { fileURLToPath } from 'node:url';
 import { resolve, extname, sep } from 'node:path';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
-const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg' };
+const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg' };
 const port = Number(process.env.PORT || 4173);
 createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
-    const target = resolve(root, `.${pathname === '/' ? '/index.html' : pathname}`);
+    const target = resolve(root, `.${pathname === '/' ? '/index.html' : pathname === '/weather.json' ? '/.weather/current.json' : pathname}`);
     if (!target.startsWith(root.endsWith(sep) ? root : root + sep)) {
       response.writeHead(403).end();
       return;

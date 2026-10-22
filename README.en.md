@@ -2,9 +2,9 @@
 
 **The city falls asleep. You exhale.**
 
-A small nighttime city in your browser. Warm windows, a café that's still open,
-rain on the rooftops. Build a soundscape, find some music, and take a moment
-without having to get anything done.
+A small city in your browser that follows Moscow's time and weather.
+Daylight gives way to warm windows; rain and snow arrive with the weather outside.
+Build a soundscape, find some music, and take a moment without having to get anything done.
 
 **[Enter the city](https://city.maark.ru/)** · [Русский](README.md) / **English** · [Suggest an idea](https://github.com/MerlinRus/SilentCity/issues)
 
@@ -21,6 +21,7 @@ without having to get anything done.
 
 | If you feel like… | There's a place for that |
 | --- | --- |
+| Sharing the city's day | **Moscow time and weather:** daylight, twilight, a moon, clouds, rain, snow and thunderstorms. Weather updates with a small delay and never changes your sound mix. |
 | Taking a break from the noise | **30 sounds to mix:** rain, a fireplace, thunder, the sea, forest birds, crickets, a purring cat and the Saint Petersburg metro. Each has its own volume. |
 | Finding the right music | **Five live radio genres:** rock'n'roll and oldies, lo-fi, electronic, jazz and blues. Real broadcasts, not short recordings on repeat. |
 | Knowing someone else is still awake | **Life in the windows:** 36 little notes from Lena, Misha and Sonya. Read another from the same neighbour or visit a different window. |
@@ -79,7 +80,7 @@ If you enjoyed your stay, a repository star or [sharing the city with a friend](
 
 ## Behind the windows
 
-[Run locally and developer notes, in Russian](DEVELOPMENT.md) · [Sound credits](sounds/SOURCES.md) · [Radio stations and sources](RADIO.md)
+[Run locally and developer notes, in Russian](DEVELOPMENT.md) · [Time and weather](WEATHER.md) · [Sound credits](sounds/SOURCES.md) · [Radio stations and sources](RADIO.md)
 
 The 30 ambient recordings have individual credits and CC0 licences. These do not
 cover music broadcast by the external radio stations. A separate source-code

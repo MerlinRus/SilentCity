@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh SilentCity weather every ten minutes
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=10min
+RandomizedDelaySec=20s
+AccuracySec=30s
+Unit=after-rain-weather.service
+
+[Install]
+WantedBy=timers.target

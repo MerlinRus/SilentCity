@@ -9,3 +9,5 @@ node_modules/
 .codegraph/
 preview.jpg
 deploy/*.jpg
+.weather/
+__pycache__/

@@ -1,0 +1,23 @@
+[Unit]
+Description=SilentCity shared Moscow weather snapshot
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=after-rain-weather
+Group=after-rain-weather
+ExecStart=/usr/bin/python3 /opt/after-rain/scripts/update-weather.py --output /opt/after-rain/site/weather/current.json
+TimeoutStartSec=30
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ReadWritePaths=/opt/after-rain/site/weather
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+LockPersonality=true
+MemoryMax=64M
+CPUQuota=10%
+
