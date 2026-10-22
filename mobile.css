@@ -400,7 +400,8 @@ button:active { filter: brightness(1.15); }
 @keyframes resident-note-swap { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: no-preference) {
   :root { --ease-ui: cubic-bezier(.23, 1, .32, 1); }
-  .pointer-motion #room-content.changing-note :is(#room-title, .resident-note) { animation: resident-note-swap 140ms cubic-bezier(.37,0,.63,1) 2 alternate both; }
+  .pointer-motion #room-content.changing-note :is(#room-title, .resident-note),
+  .pointer-motion #room-content.changing-resident :is(.resident-illustration, .resident-signature) { animation: resident-note-swap 140ms cubic-bezier(.37,0,.63,1) 2 alternate both; }
   .pointer-motion .header, .pointer-motion .intro, .pointer-motion .city-caption,
   .pointer-motion .sound-dock, .pointer-motion .bottom-note,
   .pointer-motion #return, .pointer-motion #explore-city {

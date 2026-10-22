@@ -847,6 +847,13 @@ function commitResidentNote(change) {
   const note = chooseResidentNote(change.index);
   change.title.textContent = note.title;
   change.body.textContent = note.text;
+  if (change.nextResident) {
+    const resident = residents[change.index];
+    select('.resident-object').setAttribute('d', resident.object);
+    select('.resident-signature strong').textContent = resident.name;
+    select('.resident-signature span').textContent = resident.place;
+    lightResident(change.index);
+  }
   change.committed = true;
 }
 function finishResidentNoteChange(commit = true) {
@@ -854,55 +861,61 @@ function finishResidentNoteChange(commit = true) {
   if (!change) return;
   if (commit) commitResidentNote(change);
   residentNoteChange = null;
-  content.classList.remove('changing-note');
+  content.classList.remove('changing-note', 'changing-resident');
   change.button.removeAttribute('aria-busy');
 }
-function changeResidentNote(index) {
+function changeResidentNote(index, nextResident = false) {
   if (residentNoteChange) return;
-  residentNoteChange = { index, title: select('#room-title'), body: select('.resident-note'), button: select('#resident-more'), committed: false };
+  residentNoteChange = { index, nextResident, title: select('#room-title'), body: select('.resident-note'), button: select(nextResident ? '#resident-next' : '#resident-more'), committed: false };
   if (reducedMotion.matches || !document.documentElement.classList.contains('pointer-motion') || !residentNoteChange.body.animate) {
     finishResidentNoteChange();
     return;
   }
   residentNoteChange.button.setAttribute('aria-busy', 'true');
+  if (nextResident) content.classList.add('changing-resident');
   content.classList.add('changing-note');
 }
-function reserveResidentSpace(index = litResident, retry = true) {
+function reserveResidentSpace(retry = true) {
   if (!dialog.open || !dialog.classList.contains('resident-dialog') || document.hidden) return;
   finishResidentNoteChange();
   const title = select('#room-title');
   const body = select('.resident-note');
-  const titleStyle = getComputedStyle(title);
-  const bodyStyle = getComputedStyle(body);
-  const titleWidth = titleStyle.width;
-  const bodyWidth = bodyStyle.width;
-  const key = [index, titleWidth, bodyWidth, titleStyle.font, bodyStyle.font].join('|');
+  const signature = select('.resident-signature');
+  const elements = [title, body, signature];
+  const styles = elements.map((element) => getComputedStyle(element));
+  const widths = styles.map((style) => style.width);
+  const key = styles.flatMap((style) => [style.width, style.font]).join('|');
   if (residentSizeKey === key) return;
   const probe = document.createElement('div');
   probe.className = 'resident-measure';
   probe.setAttribute('aria-hidden', 'true');
   probe.inert = true;
-  const stacks = [document.createElement('div'), document.createElement('div')];
-  residents[index].notes.forEach((note) => {
-    [title, body].forEach((element, column) => {
-      const sample = element.cloneNode(false);
-      sample.removeAttribute('id');
-      sample.removeAttribute('aria-live');
-      sample.removeAttribute('aria-atomic');
-      sample.style.cssText = `grid-area:1 / 1;min-height:0;height:auto;margin:0;width:${column === 0 ? titleWidth : bodyWidth}`;
-      sample.textContent = column === 0 ? note.title : note.text;
-      stacks[column].append(sample);
+  const stacks = elements.map(() => document.createElement('div'));
+  function addSample(element, column) {
+    const sample = element.cloneNode(column === 2);
+    sample.removeAttribute('id');
+    sample.removeAttribute('aria-live');
+    sample.removeAttribute('aria-atomic');
+    sample.style.cssText = `grid-area:1 / 1;min-height:0;height:auto;margin:0;width:${widths[column]}`;
+    stacks[column].append(sample);
+    return sample;
+  }
+  residents.forEach((resident) => {
+    resident.notes.forEach((note) => {
+      addSample(title, 0).textContent = note.title;
+      addSample(body, 1).textContent = note.text;
     });
+    const sample = addSample(signature, 2);
+    sample.querySelector('strong').textContent = resident.name;
+    sample.querySelector('span').textContent = resident.place;
   });
   probe.append(...stacks);
   content.append(probe);
-  const titleHeight = stacks[0].offsetHeight + 1;
-  const bodyHeight = stacks[1].offsetHeight + 1;
+  const heights = stacks.map((stack) => stack.offsetHeight + 1);
   probe.remove();
-  title.style.minHeight = `${titleHeight}px`;
-  body.style.minHeight = `${bodyHeight}px`;
+  elements.forEach((element, column) => { element.style.minHeight = `${heights[column]}px`; });
   residentSizeKey = key;
-  if (retry && (getComputedStyle(title).width !== titleWidth || getComputedStyle(body).width !== bodyWidth)) reserveResidentSpace(index, false);
+  if (retry && elements.some((element, column) => getComputedStyle(element).width !== widths[column])) reserveResidentSpace(false);
 }
 function residentRoom(index) {
   finishResidentNoteChange(false);
@@ -917,24 +930,21 @@ function residentRoom(index) {
       <path d="M51 20h24l-8 77H51Zm138 0h-20l8 77h12Z" fill="#83917b" fill-opacity=".25"/>
       <ellipse cx="137" cy="72" rx="44" ry="28" fill="url(#resident-glow)"/>
       <path d="M116 65h40l-10-23h-20Z" fill="#e5c28c"/><path d="M136 65v25m-12 0h24M91 93h77" stroke="#b1a080" stroke-width="2"/>
-      <path d="${resident.object}" stroke="#d7bf95" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" transform="translate(20 0)"/>
+      <path class="resident-object" d="${resident.object}" stroke="#d7bf95" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" transform="translate(20 0)"/>
       <defs><radialGradient id="resident-glow"><stop stop-color="#e5c28c" stop-opacity=".25"/><stop offset="1" stop-color="#e5c28c" stop-opacity="0"/></radialGradient></defs>
     </svg>
     <blockquote class="resident-note" aria-live="polite" aria-atomic="true">${note.text}</blockquote><p class="resident-signature"><strong>${resident.name}</strong><span>${resident.place}</span></p>
     <div class="resident-actions"><button class="dialog-action" id="resident-more">Ещё записка ${svgIcon('notes')}</button><button class="dialog-action secondary" id="resident-next">Другое окно ${svgIcon('external')}</button><button class="mix-clear" id="resident-return">Вернуться в город</button></div>`;
-  select('#resident-more').addEventListener('click', () => changeResidentNote(index));
+  select('#resident-more').addEventListener('click', () => changeResidentNote(litResident));
   select('.resident-note').addEventListener('animationiteration', (event) => {
     if (event.animationName === 'resident-note-swap' && residentNoteChange?.body === event.currentTarget) commitResidentNote(residentNoteChange);
   });
   select('.resident-note').addEventListener('animationend', (event) => {
     if (event.animationName === 'resident-note-swap' && residentNoteChange?.body === event.currentTarget) finishResidentNoteChange(false);
   });
-  select('#resident-next').addEventListener('click', () => {
-    residentRoom((litResident + 1) % residents.length);
-    select('#resident-next').focus({ preventScroll: true });
-  });
+  select('#resident-next').addEventListener('click', () => changeResidentNote((litResident + 1) % residents.length, true));
   select('#resident-return').addEventListener('click', () => dialog.close());
-  if (dialog.open) { reserveResidentSpace(index); revealContent(content); }
+  if (dialog.open) { reserveResidentSpace(); revealContent(content); }
 }
 function openRoom(room) {
   finishResidentNoteChange(false);
