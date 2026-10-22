@@ -602,7 +602,6 @@ function cancelPendingStation() {
   pendingTrack = null;
 }
 function pauseStation() {
-  cancelPendingStation();
   if (!activeTrack) return;
   if (stations[activeTrack.index].stream) {
     disposeTrack(activeTrack);
@@ -696,7 +695,7 @@ async function toggleAudio() {
     else setTimeout(() => {
       if (!playing) {
         layers.forEach((layer) => layer.track?.element.pause());
-        audio.suspend().catch(() => {});
+        if (!pendingTrack) audio.suspend().catch(() => {});
       }
     }, 1200);
     syncMixer();
@@ -1168,5 +1167,5 @@ window.visualViewport?.addEventListener('resize', updateVisualViewport, { passiv
 window.visualViewport?.addEventListener('scroll', updateVisualViewport, { passive: true });
 window.addEventListener('resize', () => { updateVisualViewport(); reserveResidentSpace(); }, { passive: true });
 document.fonts?.ready.then(() => { residentSizeKey = ''; reserveResidentSpace(); });
-window.addEventListener('pagehide', () => { clearInterval(melodyInterval); pauseStation(); layers.forEach((layer) => layer.track?.element.pause()); if (audio) audio.suspend(); });
+window.addEventListener('pagehide', () => { clearInterval(melodyInterval); cancelPendingStation(); pauseStation(); layers.forEach((layer) => layer.track?.element.pause()); if (audio) audio.suspend(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted && audio) { if (playing) { audio.resume().catch(() => {}); if (musicLevel > 0) switchStation(stationIndex).catch(() => toast('Нажми на воспроизведение, чтобы вернуть звук.')); layers.forEach((layer) => startLayer(layer)); } melodyInterval = setInterval(() => { if (playing) playNote(); }, 3200); } });
