@@ -644,9 +644,10 @@ select('#wander').addEventListener('click', () => {
 function leaveCity() { world.classList.remove('immersive'); select('#return').hidden = true; select('#wander').focus(); }
 select('#return').addEventListener('click', leaveCity);
 const scene = select('#scene');
-const sceneCurtain = select('#scene-curtain');
+const citySvg = scene.querySelector('svg');
 let explorationAnimation = null;
 let explorationTarget = null;
+let explorationScroll = { left: 0, top: 0 };
 const cityHud = document.querySelectorAll('.header, .intro, .city-caption, .sound-dock, .bottom-note, #return, #explore-city');
 function centerExploration() {
   if (!world.classList.contains('exploring')) return;
@@ -671,6 +672,14 @@ function applyExploration(enabled) {
     (launcher.getClientRects().length ? launcher : select('#help')).focus({ preventScroll: true });
   }
 }
+function cityFrame(bounds) {
+  const matrix = citySvg.getScreenCTM();
+  if (!matrix) return null;
+  return {
+    transform: `matrix(${matrix.a},${matrix.b},${matrix.c},${matrix.d},${matrix.e - bounds.left},${matrix.f - bounds.top})`,
+    opacity: Number(getComputedStyle(scene).opacity) * Number(getComputedStyle(citySvg).opacity)
+  };
+}
 function finishExplorationTransition(target = explorationTarget) {
   if (explorationTarget === null) return;
   explorationTarget = null;
@@ -679,41 +688,40 @@ function finishExplorationTransition(target = explorationTarget) {
     explorationAnimation.cancel();
     explorationAnimation = null;
   }
-  sceneCurtain.setAttribute('hidden', '');
   world.classList.remove('city-transitioning');
-  scene.inert = false;
   if (world.classList.contains('exploring') !== target) applyExploration(target);
+  else {
+    scene.scrollLeft = explorationScroll.left;
+    scene.scrollTop = explorationScroll.top;
+  }
   syncSceneActivity();
 }
 function setExploration(enabled) {
   if (explorationTarget === null && world.classList.contains('exploring') === enabled) return;
-  if (reducedMotion.matches || !document.documentElement.classList.contains('pointer-motion') || !sceneCurtain.animate || document.hidden) {
+  if (reducedMotion.matches || !document.documentElement.classList.contains('pointer-motion') || !citySvg.animate || !citySvg.getScreenCTM || document.hidden) {
     finishExplorationTransition(enabled);
     if (world.classList.contains('exploring') !== enabled) applyExploration(enabled);
     return;
   }
   if (explorationTarget === enabled) return;
-  const opacity = sceneCurtain.hasAttribute('hidden') ? 0 : Number(getComputedStyle(sceneCurtain).opacity);
+  const bounds = world.getBoundingClientRect();
+  const first = cityFrame(bounds);
   if (explorationAnimation) {
     explorationAnimation.onfinish = null;
     explorationAnimation.cancel();
   }
   explorationTarget = enabled;
-  sceneCurtain.removeAttribute('hidden');
+  world.classList.remove('city-transitioning');
+  applyExploration(enabled);
+  const last = cityFrame(bounds);
+  explorationScroll = { left: scene.scrollLeft, top: scene.scrollTop };
+  if (!first || !last) { finishExplorationTransition(); return; }
   world.classList.add('city-transitioning');
-  scene.inert = true;
-  const easing = getComputedStyle(world).getPropertyValue('--ease-ui').trim() || 'cubic-bezier(.23,1,.32,1)';
-  const fadeOut = sceneCurtain.animate([{ opacity }, { opacity: 1 }], { duration: 100, easing, fill: 'forwards' });
-  explorationAnimation = fadeOut;
-  fadeOut.onfinish = () => {
-    if (explorationAnimation !== fadeOut) return;
-    scene.inert = false;
-    applyExploration(enabled);
-    const fadeIn = sceneCurtain.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing, fill: 'forwards' });
-    explorationAnimation = fadeIn;
-    fadeOut.cancel();
-    fadeIn.onfinish = () => { if (explorationAnimation === fadeIn) finishExplorationTransition(); };
-  };
+  scene.scrollLeft = 0;
+  scene.scrollTop = 0;
+  const animation = citySvg.animate([first, last], { duration: 280, easing: 'cubic-bezier(.77,0,.175,1)', fill: 'both' });
+  explorationAnimation = animation;
+  animation.onfinish = () => { if (explorationAnimation === animation) finishExplorationTransition(); };
   syncSceneActivity();
 }
 select('#explore-city').addEventListener('click', () => setExploration(true));

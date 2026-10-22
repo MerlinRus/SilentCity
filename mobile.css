@@ -163,9 +163,6 @@ button:active { filter: brightness(1.15); }
 }
 
 .world { height: 100dvh; min-height: 0; }
-.scene-curtain { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; }
-.scene-curtain[hidden] { display: none; }
-.world.city-transitioning .scene { pointer-events: none; }
 .place-marker text { font-size: 11.5px; }
 .explore-button { display: none; }
 .explore-button, .explore-exit {
@@ -223,6 +220,11 @@ button:active { filter: brightness(1.15); }
   transform: scale(.8);
   transform-box: fill-box;
   transform-origin: center;
+}
+.world.city-transitioning .scene { inset: 0; width: 100%; height: 100%; overflow: hidden; opacity: 1; pointer-events: none; contain: paint; }
+.world.city-transitioning .scene > svg {
+  display: block; width: 1600px; height: 1000px; max-width: none; overflow: visible;
+  transform-box: border-box; transform-origin: 0 0;
 }
 
 @media (max-width: 1100px) {
