@@ -5,6 +5,7 @@ const content = select('#room-content');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 function cancelUiMotion() {
   content.getAnimations?.({ subtree: true }).forEach((animation) => animation.cancel());
+  finishExplorationTransition();
 }
 document.addEventListener('pointerdown', () => document.documentElement.classList.add('pointer-motion'), { capture: true, passive: true });
 document.addEventListener('keydown', () => {
@@ -261,7 +262,7 @@ const cityTram = select('#city-tram');
 let cityLifeTimeout;
 let cityLifeTick = 0;
 let pageAway = false;
-function scenePaused() { return document.hidden || dialog.open || pageAway; }
+function scenePaused() { return document.hidden || dialog.open || pageAway || world.classList.contains('city-transitioning'); }
 function lightResident(index) {
   litResident = index;
   residentButtons.forEach((button, buttonIndex) => button.classList.toggle('is-lit', buttonIndex === index));
@@ -643,6 +644,9 @@ select('#wander').addEventListener('click', () => {
 function leaveCity() { world.classList.remove('immersive'); select('#return').hidden = true; select('#wander').focus(); }
 select('#return').addEventListener('click', leaveCity);
 const scene = select('#scene');
+const sceneCurtain = select('#scene-curtain');
+let explorationAnimation = null;
+let explorationTarget = null;
 const cityHud = document.querySelectorAll('.header, .intro, .city-caption, .sound-dock, .bottom-note, #return, #explore-city');
 function centerExploration() {
   if (!world.classList.contains('exploring')) return;
@@ -650,7 +654,7 @@ function centerExploration() {
   scene.scrollLeft = Math.max(0, 1050 * scale - scene.clientWidth / 2);
   scene.scrollTop = Math.max(0, 470 * scale - scene.clientHeight / 2);
 }
-function setExploration(enabled) {
+function applyExploration(enabled) {
   cityHud.forEach((element) => { element.inert = enabled; });
   world.classList.toggle('exploring', enabled);
   select('#explore-city').setAttribute('aria-expanded', String(enabled));
@@ -667,10 +671,57 @@ function setExploration(enabled) {
     (launcher.getClientRects().length ? launcher : select('#help')).focus({ preventScroll: true });
   }
 }
+function finishExplorationTransition(target = explorationTarget) {
+  if (explorationTarget === null) return;
+  explorationTarget = null;
+  if (explorationAnimation) {
+    explorationAnimation.onfinish = null;
+    explorationAnimation.cancel();
+    explorationAnimation = null;
+  }
+  sceneCurtain.setAttribute('hidden', '');
+  world.classList.remove('city-transitioning');
+  scene.inert = false;
+  if (world.classList.contains('exploring') !== target) applyExploration(target);
+  syncSceneActivity();
+}
+function setExploration(enabled) {
+  if (explorationTarget === null && world.classList.contains('exploring') === enabled) return;
+  if (reducedMotion.matches || !document.documentElement.classList.contains('pointer-motion') || !sceneCurtain.animate || document.hidden) {
+    finishExplorationTransition(enabled);
+    if (world.classList.contains('exploring') !== enabled) applyExploration(enabled);
+    return;
+  }
+  if (explorationTarget === enabled) return;
+  const opacity = sceneCurtain.hasAttribute('hidden') ? 0 : Number(getComputedStyle(sceneCurtain).opacity);
+  if (explorationAnimation) {
+    explorationAnimation.onfinish = null;
+    explorationAnimation.cancel();
+  }
+  explorationTarget = enabled;
+  sceneCurtain.removeAttribute('hidden');
+  world.classList.add('city-transitioning');
+  scene.inert = true;
+  const easing = getComputedStyle(world).getPropertyValue('--ease-ui').trim() || 'cubic-bezier(.23,1,.32,1)';
+  const fadeOut = sceneCurtain.animate([{ opacity }, { opacity: 1 }], { duration: 100, easing, fill: 'forwards' });
+  explorationAnimation = fadeOut;
+  fadeOut.onfinish = () => {
+    if (explorationAnimation !== fadeOut) return;
+    scene.inert = false;
+    applyExploration(enabled);
+    const fadeIn = sceneCurtain.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing, fill: 'forwards' });
+    explorationAnimation = fadeIn;
+    fadeOut.cancel();
+    fadeIn.onfinish = () => { if (explorationAnimation === fadeIn) finishExplorationTransition(); };
+  };
+  syncSceneActivity();
+}
 select('#explore-city').addEventListener('click', () => setExploration(true));
 select('#explore-return').addEventListener('click', () => setExploration(false));
 scene.addEventListener('pointerdown', () => { if (world.classList.contains('exploring')) select('#explore-hint').hidden = true; }, { passive: true });
-window.addEventListener('resize', centerExploration, { passive: true });
+window.addEventListener('resize', () => { finishExplorationTransition(); centerExploration(); }, { passive: true });
+document.addEventListener('visibilitychange', () => { if (document.hidden) finishExplorationTransition(); });
+window.addEventListener('pagehide', () => finishExplorationTransition());
 async function toggleFullscreen() {
   try {
     if (document.fullscreenElement) await document.exitFullscreen();
@@ -772,6 +823,7 @@ function residentRoom(index) {
   if (dialog.open) revealContent(content);
 }
 function openRoom(room) {
+  finishExplorationTransition();
   dialog.classList.toggle('mixer-dialog', room === 'mixer');
   dialog.classList.toggle('resident-dialog', room === 'resident');
   if (room === 'radio') radioRoom();

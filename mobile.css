@@ -163,6 +163,9 @@ button:active { filter: brightness(1.15); }
 }
 
 .world { height: 100dvh; min-height: 0; }
+.scene-curtain { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; }
+.scene-curtain[hidden] { display: none; }
+.world.city-transitioning .scene { pointer-events: none; }
 .place-marker text { font-size: 11.5px; }
 .explore-button { display: none; }
 .explore-button, .explore-exit {
