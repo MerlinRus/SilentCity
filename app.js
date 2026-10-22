@@ -719,7 +719,7 @@ function setExploration(enabled) {
   world.classList.add('city-transitioning');
   scene.scrollLeft = 0;
   scene.scrollTop = 0;
-  const animation = citySvg.animate([first, last], { duration: 280, easing: 'cubic-bezier(.77,0,.175,1)', fill: 'both' });
+  const animation = citySvg.animate([first, last], { duration: 650, easing: 'cubic-bezier(.37,0,.63,1)', fill: 'both' });
   explorationAnimation = animation;
   animation.onfinish = () => { if (explorationAnimation === animation) finishExplorationTransition(); };
   syncSceneActivity();
