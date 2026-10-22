@@ -1092,6 +1092,7 @@ function openRoom(room) {
   if (room === 'radio') radioRoom();
   if (room === 'live-radio') liveRadioRoom();
   if (room === 'weather') weatherRoom();
+  if (room === 'cities') cityRoom();
   if (room === 'mixer') mixerRoom();
   if (room === 'resident') residentRoom(litResident);
   if (room === 'notes') {
@@ -1160,8 +1161,10 @@ function updateNightLighting(now) {
   if (world.dataset.nightLevel !== String(level)) world.dataset.nightLevel = String(level);
 }
 let weatherSnapshot = null;
+let weatherLocation = window.CityWeather.presets[0];
 let weatherOffset = 0;
 let weatherPending = false;
+let weatherController = null;
 let weatherLastFetch = 0;
 let climateSignature = '';
 const weatherIcons = {
@@ -1173,8 +1176,73 @@ const weatherIcons = {
   fog: 'M5 8a4 4 0 0 1 7-4 4 4 0 0 1 7 4M3 12h18M5 16h14M3 20h18',
   storm: 'M7 14a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 8M13 12l-4 6h4l-2 5'
 };
-try { weatherSnapshot = window.CityWeather.validate(JSON.parse(localStorage.getItem('after-rain-weather-v1'))); } catch {}
-function moscowNow() { return Date.now() + weatherOffset; }
+try {
+  weatherLocation = window.CityWeather.validLocation(JSON.parse(localStorage.getItem('after-rain-city-v1'))) || weatherLocation;
+  window.CityWeather.configureLocation(weatherLocation);
+  const cached = JSON.parse(localStorage.getItem('after-rain-city-weather-v1'));
+  if (cached?.locationKey === window.CityWeather.locationKey(weatherLocation)) weatherSnapshot = window.CityWeather.validate(cached.snapshot);
+  else if (window.CityWeather.locationKey(weatherLocation) === window.CityWeather.locationKey(window.CityWeather.presets[0])) weatherSnapshot = window.CityWeather.validate(JSON.parse(localStorage.getItem('after-rain-weather-v1')));
+} catch {}
+function cityNow() { return Date.now() + weatherOffset; }
+function escapeCityText(value) { return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character])); }
+function chooseCity(location) {
+  const valid = window.CityWeather.validLocation(location);
+  if (!valid) return;
+  if (window.CityWeather.locationKey(valid) !== window.CityWeather.locationKey(weatherLocation)) {
+    weatherController?.abort();
+    weatherController = null;
+    weatherPending = false;
+    weatherLastFetch = 0;
+    weatherSnapshot = null;
+    weatherLocation = valid;
+    window.CityWeather.configureLocation(valid);
+    try { localStorage.setItem('after-rain-city-v1', JSON.stringify(valid)); localStorage.removeItem('after-rain-city-weather-v1'); localStorage.removeItem('after-rain-weather-v1'); } catch {}
+  }
+  weatherRoom();
+  select('#room-title').setAttribute('tabindex', '-1');
+  select('#room-title').focus({ preventScroll: true });
+  updateClock();
+}
+function cityRoom() {
+  content.innerHTML = `<h2 id="room-title" tabindex="-1">В каком ты городе?</h2><p>Небо, погода и часы будут жить по его времени. Наш уютный двор останется прежним.</p><div class="city-presets" aria-label="Быстрый выбор города">${window.CityWeather.presets.map((location, index) => `<button class="dialog-action secondary" data-city-preset="${index}" aria-pressed="${window.CityWeather.locationKey(location) === window.CityWeather.locationKey(weatherLocation)}">${location.name}</button>`).join('')}</div><form class="city-search" id="city-search"><label for="city-query">Или найди свой город</label><div><input id="city-query" name="city" type="search" minlength="2" maxlength="100" required autocomplete="off" placeholder="Например, Владивосток"><button class="dialog-action" type="submit">Найти</button></div></form><p id="city-search-status" role="status" aria-live="polite">Сейчас: ${escapeCityText(weatherLocation.name)}. Выбор сохранится в этом браузере.</p><div id="city-results" class="station-list city-results"></div><p>Геолокацию не запрашиваем. Поиск — только по кнопке, погода — раз в 10 минут в открытой вкладке. Наш сервер передаёт Open-Meteo только запрос города или его координаты, без IP посетителя.</p><p>Названия городов: <a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer">GeoNames ${svgIcon('external')}</a> через <a href="https://open-meteo.com/en/docs/geocoding-api" target="_blank" rel="noopener noreferrer">Open-Meteo</a>.</p><button class="dialog-action secondary" id="city-back">Назад к погоде</button>`;
+  if (dialog.open) select('#room-title').focus({ preventScroll: true });
+  content.querySelectorAll('[data-city-preset]').forEach((button) => button.addEventListener('click', () => chooseCity(window.CityWeather.presets[Number(button.dataset.cityPreset)])));
+  select('#city-back').addEventListener('click', weatherRoom);
+  const form = select('#city-search');
+  const status = select('#city-search-status');
+  const results = select('#city-results');
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const query = select('#city-query').value.trim();
+    if (query.length < 2 || form.getAttribute('aria-busy') === 'true') return;
+    form.setAttribute('aria-busy', 'true');
+    const submit = form.querySelector('button');
+    submit.disabled = true;
+    status.textContent = 'Ищем город…';
+    results.replaceChildren();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(`city-search?${new URLSearchParams({ name: query, count: '8', language: 'ru', format: 'json' })}`, { credentials: 'omit', mode: 'same-origin', redirect: 'error', signal: controller.signal });
+      if (!response.ok) throw new Error('City search unavailable');
+      const body = await response.text();
+      if (body.length > 65536) throw new Error('City response too large');
+      const data = JSON.parse(body);
+      if (data.error || (data.results !== undefined && !Array.isArray(data.results))) throw new Error('Invalid city response');
+      const locations = (data.results || []).slice(0, 8).map((location) => window.CityWeather.validLocation({ ...location, region: location.admin1 })).filter(Boolean);
+      if (!form.isConnected) return;
+      status.textContent = locations.length ? 'Выбери город. Регион поможет не перепутать тёзок.' : 'Город не найден. Попробуй другое название или латиницу.';
+      results.innerHTML = locations.map((location, index) => `<button class="station-choice" data-city-result="${index}"><strong>${escapeCityText(location.name)}</strong><span>${escapeCityText([location.region, location.country].filter(Boolean).join(', '))}</span></button>`).join('');
+      results.querySelectorAll('[data-city-result]').forEach((button) => button.addEventListener('click', () => chooseCity(locations[Number(button.dataset.cityResult)])));
+    } catch {
+      if (form.isConnected) status.textContent = 'Не удалось загрузить города. Попробуй ещё раз или выбери город выше.';
+    } finally {
+      clearTimeout(timeout);
+      form.removeAttribute('aria-busy');
+      submit.disabled = false;
+    }
+  });
+}
 function climateIcon(frame) { return weatherIcons[frame.kind === 'clear' && frame.phase === 'night' ? 'moon' : frame.kind] || weatherIcons.cloudy; }
 function mixColour(dark, light, amount) {
   return '#' + [0, 2, 4].map((offset) => Math.round(parseInt(dark.slice(offset, offset + 2), 16) * (1 - amount) + parseInt(light.slice(offset, offset + 2), 16) * amount).toString(16).padStart(2, '0')).join('');
@@ -1204,44 +1272,59 @@ function applyClimate(frame) {
   restartRain();
 }
 function weatherRoom() {
-  const frame = window.CityWeather.frame(weatherSnapshot, moscowNow());
+  const frame = window.CityWeather.frame(weatherSnapshot, cityNow());
   const temperature = frame.temperature === null ? 'Нет данных' : `${frame.temperature > 0 ? '+' : ''}${frame.temperature} °C`;
-  const status = !frame.usable ? 'Свежая погода временно недоступна. Не придумываем осадки: город продолжает жить по московскому времени.' : frame.stale ? 'Показаны последние доступные данные. Они могут отличаться от погоды сейчас.' : 'Погода для центра Москвы. Условия в разных районах могут отличаться.';
-  content.innerHTML = `<svg class="weather-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="${climateIcon(frame)}"/></svg><h2 id="room-title">Как сейчас в Москве.</h2><p>${status}</p><dl class="weather-facts"><div><dt>Температура</dt><dd>${temperature}</dd></div><div><dt>Небо</dt><dd>${frame.label}</dd></div><div><dt>Восход</dt><dd>${frame.sun ? window.CityWeather.formatTime(frame.sun.sunrise * 1000) : 'Нет данных'}</dd></div><div><dt>Закат</dt><dd>${frame.sun ? window.CityWeather.formatTime(frame.sun.sunset * 1000) : 'Нет данных'}</dd></div></dl><p>Время — МСК, независимо от часового пояса устройства. Свет меняется постепенно около восхода и заката.${frame.approximate ? ' Пока нет данных восхода и заката, освещение рассчитано приблизительно по положению Солнца.' : ''}</p><p>Данные: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo ${svgIcon('external')}</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Это оценка погодной модели с шагом 15 минут, не измерение у твоего окна.${weatherSnapshot ? ` Последние данные — ${window.CityWeather.formatDate(weatherSnapshot.observedAt * 1000)}, ${window.CityWeather.formatTime(weatherSnapshot.observedAt * 1000)} МСК.` : ''}</p><p>Общий кеш обновляется раз в 10 минут. Геолокацию не запрашиваем. Погода меняет картинку, но не выбранные звуки.</p>`;
+  const status = !frame.usable ? 'Свежая погода пока недоступна. Не придумываем осадки: часы и освещение продолжают работать для выбранного города.' : frame.stale ? 'Показаны последние доступные данные. Они могут отличаться от погоды сейчас.' : 'Погода для выбранной точки города. Условия в разных районах могут отличаться.';
+  const shared = window.CityWeather.locationKey(weatherLocation) === window.CityWeather.locationKey(window.CityWeather.presets[0]);
+  content.innerHTML = `<svg class="weather-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="${climateIcon(frame)}"/></svg><h2 id="room-title" tabindex="-1">${escapeCityText(weatherLocation.name)}</h2><button class="dialog-action secondary city-change" id="city-change">Выбрать другой город ${svgIcon('external')}</button><p>${status}</p><dl class="weather-facts"><div><dt>Температура</dt><dd>${temperature}</dd></div><div><dt>Небо</dt><dd>${frame.label}</dd></div><div><dt>Восход</dt><dd>${frame.sun ? window.CityWeather.formatTime(frame.sun.sunrise * 1000) : 'Нет данных'}</dd></div><div><dt>Закат</dt><dd>${frame.sun ? window.CityWeather.formatTime(frame.sun.sunset * 1000) : 'Нет данных'}</dd></div></dl><p>Местное время — ${window.CityWeather.formatTime(cityNow())}. Часовой пояс: ${escapeCityText(weatherLocation.timezone)}, независимо от настроек устройства. Свет меняется постепенно около восхода и заката.${frame.approximate ? ' Освещение сейчас рассчитано приблизительно по положению Солнца, в том числе для полярного дня и ночи.' : ''}</p><p>Данные: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo ${svgIcon('external')}</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Это оценка погодной модели с шагом 15 минут, не измерение у твоего окна.${weatherSnapshot ? ` Последние данные — ${window.CityWeather.formatDate(weatherSnapshot.observedAt * 1000)}, ${window.CityWeather.formatTime(weatherSnapshot.observedAt * 1000)} по местному времени.` : ''}</p><p>${shared ? 'Для Москвы используется общий серверный кеш.' : 'Погода загружается из Open-Meteo через наш сервер, без передачи IP посетителя.'} Обновление — раз в 10 минут в открытой вкладке. Геолокацию не запрашиваем. Выбор города сохраняется только в этом браузере. Погода меняет картинку, но не выбранные звуки.</p>`;
+  select('#city-change').addEventListener('click', () => openRoom('cities'));
 }
 async function refreshWeather() {
   if (document.hidden || pageAway || weatherPending || Date.now() - weatherLastFetch < 600000) return;
   weatherPending = true;
   weatherLastFetch = Date.now();
   const controller = new AbortController();
+  weatherController = controller;
+  const requestedLocation = window.CityWeather.locationKey(weatherLocation);
+  const shared = requestedLocation === window.CityWeather.locationKey(window.CityWeather.presets[0]);
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    const response = await fetch('weather.json', { cache: 'no-store', credentials: 'omit', mode: 'same-origin', redirect: 'error', signal: controller.signal });
+    const response = await fetch(shared ? 'weather.json' : window.CityWeather.forecastURL(weatherLocation), { cache: 'no-store', credentials: 'omit', mode: 'same-origin', redirect: 'error', signal: controller.signal });
     if (!response.ok) throw new Error('Weather unavailable');
     const body = await response.text();
     if (body.length > 16384) throw new Error('Weather response too large');
-    const snapshot = window.CityWeather.validate(JSON.parse(body));
+    if (controller !== weatherController || requestedLocation !== window.CityWeather.locationKey(weatherLocation)) return;
+    const snapshot = shared ? window.CityWeather.validate(JSON.parse(body)) : window.CityWeather.fromForecast(JSON.parse(body));
     if (!snapshot) throw new Error('Invalid weather snapshot');
     const serverTime = Date.parse(response.headers.get('Date'));
     if (Number.isFinite(serverTime)) weatherOffset = serverTime - Date.now();
     weatherSnapshot = snapshot;
-    try { localStorage.setItem('after-rain-weather-v1', JSON.stringify(snapshot)); } catch {}
+    try { localStorage.setItem('after-rain-city-weather-v1', JSON.stringify({ locationKey: requestedLocation, snapshot })); } catch {}
+    if (dialog.open && select('#city-change')) {
+      const focused = document.activeElement.id;
+      weatherRoom();
+      if (focused) document.getElementById(focused)?.focus({ preventScroll: true });
+    }
   } catch {} finally {
     clearTimeout(timeout);
-    weatherPending = false;
-    updateClock();
+    if (controller === weatherController) {
+      weatherController = null;
+      weatherPending = false;
+      updateClock();
+    }
   }
 }
 function updateClock() {
   if (document.hidden || pageAway) return;
-  const now = moscowNow();
+  const now = cityNow();
   select('#clock').textContent = window.CityWeather.formatTime(now);
   select('#clock').dateTime = new Date(now).toISOString();
-  select('#clock').setAttribute('aria-label', `${window.CityWeather.formatTime(now)} по московскому времени`);
+  select('#clock').setAttribute('aria-label', `${window.CityWeather.formatTime(now)}, местное время: ${weatherLocation.name}`);
+  select('#clock').title = `${weatherLocation.name} · ${weatherLocation.timezone}`;
   const frame = window.CityWeather.frame(weatherSnapshot, now);
-  const label = `Москва · ${frame.temperature === null ? frame.label : `${frame.temperature > 0 ? '+' : ''}${frame.temperature}° · ${frame.label}`}${frame.stale && frame.usable ? ' · данные устарели' : ''}`;
+  const label = `${weatherLocation.name} · ${frame.temperature === null ? frame.label : `${frame.temperature > 0 ? '+' : ''}${frame.temperature}° · ${frame.label}`}${frame.stale && frame.usable ? ' · данные устарели' : ''}`;
   if (select('#weather-label').textContent !== label) select('#weather-label').textContent = label;
-  select('#weather-open').setAttribute('aria-label', `${label}. Погода и время Москвы`);
+  select('#weather-open').setAttribute('aria-label', `${label}. Погода и выбор города`);
   select('#weather-open').title = label;
   select('#weather-icon').setAttribute('d', climateIcon(frame));
   select('#city-greeting').textContent = frame.phase === 'night' ? 'Город засыпает.' : frame.phase === 'dawn' ? 'Город просыпается.' : frame.phase === 'dusk' ? 'Город замедляется.' : 'Город живёт.';

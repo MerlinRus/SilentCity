@@ -1,4 +1,43 @@
 city.maark.ru {
+    handle /city-weather {
+        @notWeatherRead not method GET
+        respond @notWeatherRead "Method not allowed" 405
+        rewrite * /v1/forecast
+        reverse_proxy https://api.open-meteo.com {
+            header_up Host api.open-meteo.com
+            header_up -X-Forwarded-For
+            header_up -X-Real-IP
+            header_up -Forwarded
+            header_up -Cookie
+            header_up -Authorization
+            header_up -Referer
+            transport http {
+                dial_timeout 3s
+                response_header_timeout 6s
+            }
+        }
+    }
+
+    handle /city-search {
+        @notSearchRead not method GET
+        respond @notSearchRead "Method not allowed" 405
+        rewrite * /v1/search
+        reverse_proxy https://geocoding-api.open-meteo.com {
+            header_up Host geocoding-api.open-meteo.com
+            header_up -X-Forwarded-For
+            header_up -X-Real-IP
+            header_up -Forwarded
+            header_up -Cookie
+            header_up -Authorization
+            header_up -Referer
+            transport http {
+                dial_timeout 3s
+                response_header_timeout 6s
+            }
+        }
+    }
+
+    handle {
     root * /srv/site/current
     encode zstd gzip
 
@@ -14,4 +53,5 @@ city.maark.ru {
 
     respond /healthz "ok" 200
     file_server
+    }
 }

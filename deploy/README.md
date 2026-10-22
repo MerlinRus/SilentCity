@@ -9,9 +9,15 @@
 ## Обновление
 
 1. Проверить `npm run check` локально.
-2. Создать `/opt/after-rain/site/releases/<release-id>` и загрузить в него `index.html`, `style.css`, `mobile.css`, `app.js` и каталог `sounds/` с аудиозаписями и атрибуцией.
+2. Создать `/opt/after-rain/site/releases/<release-id>` и загрузить в него `index.html`, `style.css`, `mobile.css`, `climate.css`, `app.js`, `weather.js` и каталог `sounds/` с аудиозаписями и атрибуцией. Сохранить ссылку `weather.json -> ../../weather/current.json`.
 3. Из `/opt/after-rain/site` выполнить `ln -s releases/<release-id> current.next`, затем `mv -Tf current.next current`.
 4. Проверить `/healthz` и основные сценарии в браузере. Для изменения статических файлов перезапуск Caddy не нужен.
+
+Для поиска и погоды выбранного города Caddy должен содержать точные маршруты
+`/city-search` и `/city-weather` из репозиторного конфига. В живой конфигурации
+могут быть соседние приложения: добавлять маршруты адресно, не заменять весь
+Caddyfile репозиторной заготовкой. Перед перезагрузкой — резервная копия и
+`caddy validate`; после — проверка сайта и соседних маршрутов.
 
 ## Откат
 

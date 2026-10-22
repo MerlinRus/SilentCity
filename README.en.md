@@ -2,7 +2,7 @@
 
 **The city falls asleep. You exhale.**
 
-A small city in your browser that follows Moscow's time and weather.
+A small city in your browser that follows your chosen city's time and weather.
 Daylight gives way to warm windows; rain and snow arrive with the weather outside.
 Build a soundscape, find some music, and take a moment without having to get anything done.
 
@@ -21,7 +21,7 @@ Build a soundscape, find some music, and take a moment without having to get any
 
 | If you feel like… | There's a place for that |
 | --- | --- |
-| Sharing the city's day | **Moscow time and weather:** daylight, twilight, a moon, clouds, rain, snow and thunderstorms. Weather updates with a small delay and never changes your sound mix. |
+| Sharing the city's day | **Your city's time and weather:** choose Moscow, Saint Petersburg, Kirov, or search for another city. Daylight, twilight, a moon, clouds, rain, snow and thunderstorms. Your choice is saved and never changes your sound mix. |
 | Taking a break from the noise | **30 sounds to mix:** rain, a fireplace, thunder, the sea, forest birds, crickets, a purring cat and the Saint Petersburg metro. Each has its own volume. |
 | Finding the right music | **Five live radio genres:** rock'n'roll and oldies, lo-fi, electronic, jazz and blues. Real broadcasts, not short recordings on repeat. |
 | Knowing someone else is still awake | **Life in the windows:** 36 little notes from Lena, Misha and Sonya. Read another from the same neighbour or visit a different window. |
