@@ -382,14 +382,45 @@ let toastTimeout;
 let audioBusy = false;
 let activeTrack;
 let stationRequest = 0;
+const soundGroups = [
+  { id: 'weather', name: 'Погода' },
+  { id: 'water', name: 'У воды' },
+  { id: 'nature', name: 'Лес и лето' },
+  { id: 'home', name: 'Тёплый дом' },
+  { id: 'travel', name: 'Люди и дорога' }
+];
 const layers = [
-  { id: 'fire', name: 'Камин', detail: 'Потрескивание дров', icon: 'M13 3c1 5-4 6-2 10 1-1 2-2 2-4 5 4 6 7 3 10-3 3-9 2-10-2-1-4 3-6 7-14Z', cutoff: 5500 },
-  { id: 'thunder', name: 'Гроза', detail: 'Далёкие раскаты, без дождя', icon: 'M7 14a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 8M13 12l-4 6h4l-2 5', cutoff: 2000 },
-  { id: 'wind', name: 'Ветер', detail: 'Шелест деревьев', icon: 'M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h6a3 3 0 1 1-3 3', cutoff: 2400 },
-  { id: 'crickets', name: 'Сверчки', detail: 'Тёплая летняя ночь', icon: 'M9 9c0-5 6-5 6 0v7c0 5-6 5-6 0ZM9 11 4 8m11 3 5-3M9 15H3m12 0h6M9 18l-4 4m10-4 4 4M10 5 8 2m6 3 2-3', cutoff: 7500 },
-  { id: 'metro', name: 'Питерское метро', detail: 'Синяя ветка, объявления в вагоне', icon: 'M7 3h10c2 0 3 2 3 4v10H4V7c0-2 1-4 3-4ZM4 11h16M8 3v8m8-8v8M7 14h1m8 0h1M8 17l-3 5m11-5 3 5M7 20h10', cutoff: 6000 },
-  { id: 'rain', name: 'Дождь', detail: 'Настоящие капли за окном', icon: 'M7 14a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 9M7 18l-1 3m6-3-1 3m6-3-1 3', cutoff: 3200 }
-].map((layer) => ({ ...layer, level: 0, lastLevel: .35, track: null, pending: null, loading: false, failed: false }));
+  { id: 'rain', group: 'weather', name: 'Дождь в саду', detail: 'Капли на листьях и дорожках', duration: 316, icon: 'M7 14a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 9M7 18l-1 3m6-3-1 3m6-3-1 3', cutoff: 3200 },
+  { id: 'roof', group: 'weather', name: 'Под крышей', detail: 'Дождь снаружи, укрытие внутри', duration: 298, icon: 'm3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7M3 3 2 5m19-2-1 2', cutoff: 3500 },
+  { id: 'tent', group: 'weather', name: 'В палатке', detail: 'Капли по натянутой ткани', duration: 248, icon: 'm2 21 10-17 10 17H2Zm10-17v17m0-9 5 9M4 3 3 5m17-2-1 2', cutoff: 3000 },
+  { id: 'window', group: 'weather', name: 'Мансардное окно', detail: 'Дождливый вечер под стеклом', duration: 826, icon: 'M4 3h16v18H4ZM4 12h16M12 3v18M8 6 6 9m12 6-2 3', cutoff: 3200 },
+  { id: 'thunder', group: 'weather', name: 'Гроза', detail: 'Раскаты далёкого грома', duration: 620, icon: 'M7 14a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 8M13 12l-4 6h4l-2 5', cutoff: 2000 },
+  { id: 'wind', group: 'weather', name: 'Ветер в кронах', detail: 'Деревья в утреннем лесу', duration: 271, icon: 'M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h6a3 3 0 1 1-3 3', cutoff: 3200 },
+  { id: 'stream', group: 'water', name: 'Ручей', detail: 'Вода журчит рядом с садом', duration: 308, icon: 'M8 3c8 3-8 6 0 9s-8 6 0 9M15 3c8 3-8 6 0 9s-8 6 0 9', cutoff: 5000 },
+  { id: 'river', group: 'water', name: 'Горная река', detail: 'Негромкий ровный поток', duration: 191, icon: 'm2 11 5-7 5 7 5-7 5 7M2 16q3-3 6 0t6 0 6 0M2 21q3-3 6 0t6 0 6 0', cutoff: 3800 },
+  { id: 'waterfall', group: 'water', name: 'Водопад', detail: 'Сплошная завеса воды', duration: 296, icon: 'M3 5h6v12m4-12v12m4-12v12h4M3 21q3-3 6 0t6 0 6 0', cutoff: 2800 },
+  { id: 'waves', group: 'water', name: 'Морской прибой', detail: 'Волны Мексиканского залива', duration: 597, icon: 'M2 10c5 0 4-7 9-7a5 5 0 0 1 4 8c4-1 5 1 7 1M2 16q3-3 6 0t6 0 6 0M2 21q3-3 6 0t6 0 6 0', cutoff: 4400 },
+  { id: 'lake', group: 'water', name: 'Берег озера', detail: 'Маленькие волны у кромки', duration: 242, icon: 'M4 7a8 3 0 1 1 16 0 8 3 0 1 1-16 0Zm-1 6q4 4 9 0t9 0M3 19q4 4 9 0t9 0', cutoff: 5000 },
+  { id: 'underwater', group: 'water', name: 'Под водой', detail: 'Волны и пузырьки в глубине', duration: 296, icon: 'M2 4q3-3 6 0t6 0 6 0M6 12a2 2 0 1 1 4 0 2 2 0 1 1-4 0Zm8 6a3 3 0 1 1 6 0 3 3 0 1 1-6 0ZM15 9h.01', cutoff: 3000 },
+  { id: 'crickets', group: 'nature', name: 'Сверчки', detail: 'Тихая ночь во Флориде', duration: 195, icon: 'M9 9c0-5 6-5 6 0v7c0 5-6 5-6 0ZM9 11 4 8m11 3 5-3M9 15H3m12 0h6M9 18l-4 4m10-4 4 4M10 5 8 2m6 3 2-3', cutoff: 6500 },
+  { id: 'birds', group: 'nature', name: 'Лесные птицы', detail: 'Солнечная весенняя опушка', duration: 363, icon: 'M3 15c6 0 5-8 11-8l3 3h4l-4 3c-1 6-8 8-14 2Zm9-8 1-4m1 7h.01M6 19l-2 3m6-2v2', cutoff: 8500 },
+  { id: 'meadow', group: 'nature', name: 'Летний луг', detail: 'Солнечный полдень за городом', duration: 360, icon: 'M12 22V11m0 5c-6 0-7-4-7-4 5 0 7 4 7 4Zm0 3c6 0 7-4 7-4-5 0-7 4-7 4ZM9 7a3 3 0 1 1 6 0 3 3 0 1 1-6 0Z', cutoff: 7500 },
+  { id: 'frogs', group: 'nature', name: 'Пруд после дождя', detail: 'Ночной хор лягушек', duration: 496, icon: 'M6 10a3 3 0 1 1 5-2h2a3 3 0 1 1 5 2c5 8-17 8-12 0Zm1 9-4 3m14-3 4 3M8 8h.01M16 8h.01M8 13q4 3 8 0', cutoff: 5500 },
+  { id: 'jungle', group: 'nature', name: 'Ночь в джунглях', detail: 'Птицы, насекомые и лягушки', duration: 301, icon: 'M12 22V8M3 10c0-10 9-10 9-2 0-8 9-8 9 2-4-3-6-2-9-2-3 0-5-1-9 2Zm3 11 6-6 6 6', cutoff: 7500 },
+  { id: 'cicadas', group: 'nature', name: 'Цикады', detail: 'Сверчки и дневное лето', duration: 282, icon: 'M10 7h4v12h-4ZM10 9C0 0 0 18 10 16m4-7c10-9 10 9 0 7M10 7 8 3m6 4 2-4M12 19v3', cutoff: 6500 },
+  { id: 'fire', group: 'home', name: 'Камин', detail: 'Потрескивание настоящих дров', duration: 248, icon: 'M13 3c1 5-4 6-2 10 1-1 2-2 2-4 5 4 6 7 3 10-3 3-9 2-10-2-1-4 3-6 7-14Z', cutoff: 5500 },
+  { id: 'cat', group: 'home', name: 'Кот рядом', detail: 'Негромкое мурчание', duration: 419, icon: 'm5 11-1-8 7 5h2l7-5-1 8c5 12-19 12-14 0Zm3 2h.01m8 0h.01M10 17l2 1 2-1M3 15H1m20 0h2', cutoff: 1800 },
+  { id: 'chimes', group: 'home', name: 'Музыка ветра', detail: 'Подвесные колокольчики', duration: 338, icon: 'M12 2v4M5 8l7-2 7 2M6 9v10m6-11v13m6-12v8M4 19h4m2 2h4m2-4h4', cutoff: 6500 },
+  { id: 'clock', group: 'home', name: 'Старые часы', detail: 'Размеренное тиканье', duration: 707, icon: 'M21 12a9 9 0 1 1-18 0 9 9 0 1 1 18 0M12 6v6l4 2M6 4 4 2m14 2 2-2', cutoff: 3500 },
+  { id: 'library', group: 'home', name: 'Библиотека', detail: 'Спокойный читальный зал', duration: 238, icon: 'M3 4h5v17H3Zm7-1h5v18h-5Zm7 3 4-1 3 15-4 1ZM3 8h5m2 0h5', cutoff: 4000 },
+  { id: 'typing', group: 'home', name: 'За работой', detail: 'Печать на клавиатуре', duration: 296, icon: 'M2 6h20v14H2ZM5 10h1m3 0h1m3 0h1m3 0h1M5 13h1m3 0h1m3 0h1m3 0h1M6 17h12', cutoff: 4500 },
+  { id: 'metro', group: 'travel', name: 'Питерское метро', detail: 'Любимая запись синей ветки', duration: 158, icon: 'M7 3h10c2 0 3 2 3 4v10H4V7c0-2 1-4 3-4ZM4 11h16M8 3v8m8-8v8M7 14h1m8 0h1M8 17l-3 5m11-5 3 5M7 20h10', cutoff: 6000 },
+  { id: 'train', group: 'travel', name: 'В электричке', detail: 'Из Сергиева Посада в Москву', duration: 369, icon: 'M5 3h14v14H5ZM5 10h14M9 3v7m6-7v7M8 14h.01M16 14h.01M8 17l-3 5m11-5 3 5M7 20h10', cutoff: 4200 },
+  { id: 'tram', group: 'travel', name: 'Трамвай', detail: 'Мягкий стук колёс в салоне', duration: 269, icon: 'M6 5h12v13H6ZM6 11h12M12 5V2m-4 0h8M8 18l-2 4m10-4 2 4M9 14h.01M15 14h.01', cutoff: 4000 },
+  { id: 'cafe', group: 'travel', name: 'Кофейня', detail: 'Негромкие разговоры и чашки', duration: 292, icon: 'M4 8h12v7a6 6 0 0 1-12 0V8Zm12 1h2a3 3 0 1 1 0 6h-2M3 22h16M7 5V2m5 3V2', cutoff: 4000 },
+  { id: 'ferry', group: 'travel', name: 'На пароме', detail: 'Отплытие с открытой палубы', duration: 200, icon: 'm3 14 9-4 9 4-3 5H6l-3-5ZM7 12V6h10v6M12 6V2M2 22q3-3 6 0t6 0 6 0', cutoff: 4000 },
+  { id: 'snow', group: 'travel', name: 'Шаги по снегу', detail: 'Неторопливая зимняя прогулка', duration: 312, icon: 'M8 3c-4 0-5 9-2 10 4 2 7-9 2-10Zm-3 13 5 1-1 5-5-1Zm12-9c-4 0-5 9-2 10 4 2 7-9 2-10Zm-3 13 5 1', cutoff: 5000 }
+].map((layer) => ({ ...layer, detail: `${layer.detail} · ${Math.floor(layer.duration / 60)}:${String(layer.duration % 60).padStart(2, '0')}`, level: 0, lastLevel: .35, track: null, pending: null, loading: false, failed: false }));
 try {
   const saved = JSON.parse(localStorage.getItem('after-rain-mix-v1'));
   if (saved && typeof saved === 'object') {
@@ -444,7 +475,7 @@ function syncMixer() {
 }
 function createLayerTrack(layer) {
   const element = document.createElement('audio');
-  element.src = `sounds/${layer.id}.mp3`;
+  element.src = `sounds/${layer.id}.mp3?v=2`;
   element.loop = true; element.preload = 'none'; element.hidden = true;
   element.dataset.layerAudio = layer.id;
   document.body.append(element);
@@ -473,7 +504,7 @@ function startLayer(layer) {
   }).finally(() => { clearTimeout(timeout); layer.pending = null; layer.loading = false; syncMixer(); });
   return layer.pending;
 }
-async function setLayerLevel(id, value) {
+async function setLayerLevel(id, value, updateMix = true) {
   const layer = layers.find((entry) => entry.id === id);
   layer.level = Math.max(0, Math.min(1, value));
   if (layer.level > 0) layer.lastLevel = layer.level;
@@ -481,7 +512,7 @@ async function setLayerLevel(id, value) {
     layer.track.gain.gain.setTargetAtTime(layer.level * .7, audio.currentTime, .1);
     if (!layer.level) setTimeout(() => { if (!layer.level) layer.track.element.pause(); }, 400);
   }
-  saveMix(); syncMixer();
+  if (updateMix) { saveMix(); syncMixer(); }
   if (layer.level > 0) {
     if (!playing) await toggleAudio();
     startLayer(layer);
@@ -560,7 +591,7 @@ async function switchStation(index) {
     return request === stationRequest;
   }
   const element = document.createElement('audio');
-  element.src = `sounds/${stations[index].sound}.mp3`;
+  element.src = `sounds/${stations[index].sound}.mp3?v=2`;
   element.loop = true;
   element.preload = 'none';
   element.hidden = true;
@@ -824,8 +855,13 @@ function radioRoom() {
   select('#radio-toggle').addEventListener('click', async () => { await toggleAudio(); const button = select('#radio-toggle'); if (button) button.textContent = playing ? 'Выключить звук' : 'Включить звук'; });
 }
 function mixerRoom() {
-  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button id="to-radio">Радио</button><button class="current" aria-current="page">Свой микс</button></nav><h2 id="room-title">Собери своё место.</h2><p class="mixer-intro">Камин дома. Метро где-то внизу. Ночь за окном.<br>Включай звуки и находи свой баланс.</p><div class="mixer-list">${layers.map((layer) => `<div class="layer-row" data-layer-row="${layer.id}"><button class="layer-toggle" aria-label="Включить: ${layer.name}" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${layer.icon}"/></svg></button><div class="layer-copy"><span class="layer-name">${layer.name}</span><span class="layer-detail">${layer.detail}</span></div><input type="range" min="0" max="100" value="0" aria-label="Громкость: ${layer.name}"><output>0%</output></div>`).join('')}<div class="layer-row radio-layer" data-radio-row><button class="layer-toggle" aria-label="Выключить: Ночное радио" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v12H4ZM7 8l10-5M8 12v4m-2-2h4m4-2h3m-3 4h3"/></svg></button><div class="layer-copy"><span class="layer-name">Ночное радио</span><span class="layer-detail">${stations[stationIndex].name}</span></div><input type="range" min="0" max="100" value="45" aria-label="Громкость: Ночное радио"><output>45%</output></div></div><div class="mix-actions"><button class="dialog-action" id="mix-play">Слушать микс</button><button class="mix-clear" id="mix-clear">Выключить всё</button></div><p class="mix-footnote" id="mix-feedback" role="status">Настройки сохраняются в этом браузере. <a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p>`;
+  const groups = soundGroups.map((group) => `<section class="mixer-group" data-sound-group="${group.id}" aria-labelledby="sound-group-${group.id}"><h3 id="sound-group-${group.id}">${group.name}</h3>${layers.filter((layer) => layer.group === group.id).map((layer) => `<div class="layer-row" data-layer-row="${layer.id}"><button class="layer-toggle" aria-label="Включить: ${layer.name}" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${layer.icon}"/></svg></button><div class="layer-copy"><span class="layer-name">${layer.name}</span><span class="layer-detail">${layer.detail}</span></div><input type="range" min="0" max="100" value="0" aria-label="Громкость: ${layer.name}"><output>0%</output></div>`).join('')}</section>`).join('');
+  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button id="to-radio">Радио</button><button class="current" aria-current="page">Свой микс</button></nav><h2 id="room-title">Собери своё место.</h2><p class="mixer-intro">30 звуков на пять тем.<br>Смешивай и находи свой баланс.</p><label class="mixer-filter"><span>Тема</span><select id="sound-theme"><option value="all">Все темы · 30 звуков</option>${soundGroups.map((group) => `<option value="${group.id}">${group.name} · 6 звуков</option>`).join('')}</select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></label><div class="mixer-list">${groups}<div class="layer-row radio-layer" data-radio-row><button class="layer-toggle" aria-label="Выключить: Ночное радио" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v12H4ZM7 8l10-5M8 12v4m-2-2h4m4-2h3m-3 4h3"/></svg></button><div class="layer-copy"><span class="layer-name">Ночное радио</span><span class="layer-detail">${stations[stationIndex].name}</span></div><input type="range" min="0" max="100" value="45" aria-label="Громкость: Ночное радио"><output>45%</output></div></div><div class="mix-actions"><button class="dialog-action" id="mix-play">Слушать микс</button><button class="mix-clear" id="mix-clear">Выключить всё</button></div><p class="mix-footnote" id="mix-feedback" role="status">Настройки сохраняются в этом браузере. <a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p>`;
   select('#to-radio').addEventListener('click', () => openRoom('radio'));
+  select('#sound-theme').addEventListener('change', (event) => {
+    content.querySelectorAll('[data-sound-group]').forEach((group) => { group.hidden = event.target.value !== 'all' && group.dataset.soundGroup !== event.target.value; });
+    select('.mixer-list').scrollTop = 0;
+  });
   layers.forEach((layer) => {
     const row = content.querySelector(`[data-layer-row="${layer.id}"]`);
     row.querySelector('button').addEventListener('click', () => setLayerLevel(layer.id, layer.failed ? layer.level : layer.level > 0 ? 0 : layer.lastLevel));
@@ -836,7 +872,7 @@ function mixerRoom() {
   radioRow.querySelector('input').addEventListener('input', async (event) => { setRadioLevel(Number(event.target.value) / 100); if (musicLevel > 0 && !playing) await toggleAudio(); });
   select('#mix-play').addEventListener('click', toggleAudio);
   select('#mix-clear').addEventListener('click', async () => {
-    layers.forEach((layer) => setLayerLevel(layer.id, 0));
+    layers.forEach((layer) => setLayerLevel(layer.id, 0, false));
     setRadioLevel(0);
     if (playing) await toggleAudio();
   });
