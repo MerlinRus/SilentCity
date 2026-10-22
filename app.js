@@ -21,10 +21,70 @@ function random() {
 const points = (coordinates) => coordinates.map((point) => point.join(',')).join(' ');
 const polygon = (coordinates, fill, attributes = '') => `<polygon points="${points(coordinates)}" fill="${fill}" ${attributes}/>`;
 const residents = [
-  { name: 'Лена', place: 'Шестой этаж · окно с чайником', row: 0, column: 1, title: 'Чайник уже закипел.', note: 'Опять заварила на двоих, хотя дома одна. Вторую чашку мысленно оставляю тебе. Сиди сколько хочется.', object: 'M57 76h19v13H57Zm19 2h4a4 4 0 0 1 0 8h-4M61 70c-4-4 4-6 0-10m7 10c-4-4 4-6 0-10' },
-  { name: 'Миша', place: 'Пятый этаж · окно с пластинками', row: 1, column: 5, title: 'Последняя сторона.', note: 'Пластинка закончилась минут десять назад. Всё сижу, слушаю, как шуршит игла. Иногда и этого достаточно.', object: 'M49 74h39v16H49Zm29 8a10 4 0 1 1-20 0 10 4 0 1 1 20 0m5-5 2-5h5' },
-  { name: 'Соня', place: 'Первый этаж · окно с растениями', row: 5, column: 0, title: 'Кажется, новый лист.', note: 'Поливала цветы и заметила маленький лист у фикуса. Три недели ничего, а потом — вот. На сегодня хороших новостей хватит.', object: 'M61 77h18l-3 13H64Zm9 0V54m0 14c-10 0-13-7-13-11 9 0 13 4 13 11Zm0-7c9 0 12-7 12-11-8 0-12 4-12 11Z' }
+  { name: 'Лена', place: 'Шестой этаж · окно с чайником', row: 0, column: 1, object: 'M57 76h19v13H57Zm19 2h4a4 4 0 0 1 0 8h-4M61 70c-4-4 4-6 0-10m7 10c-4-4 4-6 0-10', notes: [
+    { id: 'lena-tea', title: 'Чайник уже закипел.', text: 'Опять заварила на двоих, хотя дома одна. Вторую чашку мысленно оставляю тебе. Сиди сколько хочется.' },
+    { id: 'lena-bread', title: 'Почти по рецепту.', text: 'Испекла хлеб. Снизу подгорел, сверху красавец. Отрезала корочку и съела ещё тёплым, прямо у окна.' },
+    { id: 'lena-umbrella', title: 'Чужой зонт.', text: 'Взяла в кафе не свой зонт. Этот весь в маленьких утках. Завтра верну, а сегодня дождь был неожиданно весёлым.' },
+    { id: 'lena-laundry', title: 'Тёплая наволочка.', text: 'Разбирала бельё и нашла в пододеяльнике один носок. Второй всё ещё где-то путешествует. Не тороплю его.' },
+    { id: 'lena-soup', title: 'На маленьком огне.', text: 'Суп тихонько булькает. В квартире пахнет укропом. Первый вечер за неделю, когда я никуда не опаздываю.' },
+    { id: 'lena-call', title: 'Позвонила маме.', text: 'Собиралась на пять минут, проговорили сорок. Мама подробно рассказала про голубя на балконе. Хороший был голубь.' },
+    { id: 'lena-book', title: 'Билет между страниц.', text: 'В старой книге нашёлся билет на поезд. Не помню сюжет, зато помню чай в подстаканнике и сосны за окном.' },
+    { id: 'lena-cup', title: 'Та самая кружка.', text: 'У моей любимой кружки отбилась ручка. Теперь держу двумя ладонями. Чай всё такой же, только руки теплее.' },
+    { id: 'lena-neighbor', title: 'Соседка сверху.', text: 'Отнесла соседке кусок пирога. Вернулась с тремя яблоками и историей про её первую работу. Неплохой обмен.' },
+    { id: 'lena-fridge', title: 'Список на завтра.', text: 'На холодильнике написано: молоко, батарейки, погулять. Последний пункт всё время забываю. Сегодня обвела его.' },
+    { id: 'lena-scarf', title: 'Ещё один ряд.', text: 'Вяжу шарф с сентября. Он уже длиннее меня, а пряжа не кончается. Похоже, к зиме одену весь подъезд.' },
+    { id: 'lena-morning', title: 'Всё приготовлено.', text: 'Положила на стол чистую ложку и любимый чай. Маленький подарок завтрашней себе. Утром она обычно сонная.' }
+  ] },
+  { name: 'Миша', place: 'Пятый этаж · окно с пластинками', row: 1, column: 5, object: 'M49 74h39v16H49Zm29 8a10 4 0 1 1-20 0 10 4 0 1 1 20 0m5-5 2-5h5', notes: [
+    { id: 'misha-record', title: 'Последняя сторона.', text: 'Пластинка закончилась минут десять назад. Всё сижу, слушаю, как шуршит игла. Иногда и этого достаточно.' },
+    { id: 'misha-piano', title: 'Знакомые три ноты.', text: 'За стеной учат одну мелодию. Уже третий вечер. Сегодня сыграли без ошибки, и я тихонько похлопал в стену.' },
+    { id: 'misha-cover', title: 'На обороте обложки.', text: 'Купил старую пластинку. На конверте написано: «Саше, чтобы не скучал». Саша, если что, музыка всё ещё хорошая.' },
+    { id: 'misha-tram', title: 'Пропустил остановку.', text: 'Заслушался и проехал свой поворот. Шёл домой пешком мимо булочной. Теперь думаю, что всё правильно получилось.' },
+    { id: 'misha-radio', title: 'Поймал волну.', text: 'Крутил ручку старого радио и наткнулся на песню из детства. Название не успели сказать. Напеваю, пока помню.' },
+    { id: 'misha-cat', title: 'Новый слушатель.', text: 'Дворовый кот сидит под окном, пока играет джаз. На саксофоне щурится. Возможно, просто фонарь светит в глаза.' },
+    { id: 'misha-cassette', title: 'Карандаш пригодился.', text: 'Нашёл кассету со школьной записью. Плёнку пришлось подкрутить карандашом. Наш басист всё ещё немного спешит.' },
+    { id: 'misha-work', title: 'Ноутбук закрыт.', text: 'Отправил последний файл и закрыл крышку. Пластинка выбиралась дольше, чем вся работа. Зато теперь точно та.' },
+    { id: 'misha-rain', title: 'Без ударных.', text: 'Выключил музыку: дождь по жестяному подоконнику сегодня играет лучше. Особенно та капля, которая всё время мимо ритма.' },
+    { id: 'misha-shelf', title: 'По алфавиту не вышло.', text: 'Хотел разобрать пластинки, но каждую вторую включал. На полке всё ещё беспорядок. Вечер зато удался.' },
+    { id: 'misha-friend', title: 'Один трек в ответ.', text: 'Друг прислал песню без единого слова. Не виделись полгода, а я сразу понял, что у него всё нормально.' },
+    { id: 'misha-quiet', title: 'Погромче тишину.', text: 'Снял наушники, а в комнате гудит холодильник и кто-то идёт по лестнице. Ничего особенного. Просто я уже дома.' }
+  ] },
+  { name: 'Соня', place: 'Первый этаж · окно с растениями', row: 5, column: 0, object: 'M61 77h18l-3 13H64Zm9 0V54m0 14c-10 0-13-7-13-11 9 0 13 4 13 11Zm0-7c9 0 12-7 12-11-8 0-12 4-12 11Z', notes: [
+    { id: 'sonya-leaf', title: 'Кажется, новый лист.', text: 'Поливала цветы и заметила маленький лист у фикуса. Три недели ничего, а потом — вот. На сегодня хороших новостей хватит.' },
+    { id: 'sonya-cutting', title: 'Корешок в стакане.', text: 'Черенок, который дали в автобусе, пустил корни. Женщину звали Нина. Нина, у нас с вашим цветком всё получается.' },
+    { id: 'sonya-basil', title: 'Базилик на ужин.', text: 'Вырастила базилик и теперь жалею срывать листья. Пока просто нюхаю его над макаронами. Тоже вполне работает.' },
+    { id: 'sonya-snail', title: 'Кто-то ел салат.', text: 'На балконе обнаружилась улитка. Дала ей имя и кусочек огурца. Судя по всему, теперь у меня есть планы на отпуск.' },
+    { id: 'sonya-pot', title: 'Горшок из барахолки.', text: 'Нашла синий горшок с неровным краем. Фикус в нём чуть кривоват. Зато вместе они выглядят очень уверенно.' },
+    { id: 'sonya-window', title: 'Чистое стекло.', text: 'Вымыла окно. Оказалось, на доме напротив есть маленький флюгер. Живу здесь третий год, а кораблик заметила только сегодня.' },
+    { id: 'sonya-seed', title: 'На пакетике — июнь.', text: 'Разбирала семена на подоконнике. За стеклом мокрый октябрь, а на каждом пакетике уже лето. Разложила по цветам.' },
+    { id: 'sonya-walk', title: 'Лист в кармане.', text: 'Принесла с прогулки жёлтый лист. Дома он оказался ещё красивее. Положила в книгу, которую когда-нибудь дочитаю.' },
+    { id: 'sonya-light', title: 'Переставила лампу.', text: 'Подвинула лампу к цветам. Теперь от монстеры на стене огромная тень. Сижу в своей маленькой ночной оранжерее.' },
+    { id: 'sonya-gift', title: 'Один оставила себе.', text: 'Укоренила пять отростков, раздала четыре. Теперь у друзей на окнах живут кусочки моего подоконника. Приятно об этом думать.' },
+    { id: 'sonya-balcony', title: 'После дождя.', text: 'Открыла балкон, и запахло мокрой землёй. Даже чай немного остыл, пока стояла. Пожалуй, заварю ещё.' },
+    { id: 'sonya-drawing', title: 'Третий лист справа.', text: 'Рисовала свой фикус. Получилось дерево, которого не существует. Повесила рисунок рядом: пусть у него будет компания.' }
+  ] }
 ];
+const residentNoteIds = new Set(residents.flatMap((resident) => resident.notes.map((note) => note.id)));
+let readResidentNotes = new Set();
+let lastResidentNote = null;
+try {
+  const saved = JSON.parse(localStorage.getItem('after-rain-resident-notes-v1'));
+  if (Array.isArray(saved?.read)) readResidentNotes = new Set(saved.read.filter((id) => residentNoteIds.has(id)));
+  if (residentNoteIds.has(saved?.last)) lastResidentNote = saved.last;
+} catch {}
+function chooseResidentNote(index) {
+  const notes = residents[index].notes;
+  let unread = notes.filter((note) => !readResidentNotes.has(note.id));
+  if (!unread.length) {
+    notes.forEach((note) => readResidentNotes.delete(note.id));
+    unread = notes.filter((note) => note.id !== lastResidentNote);
+  }
+  const note = unread[Math.floor(Math.random() * unread.length)];
+  readResidentNotes.add(note.id);
+  lastResidentNote = note.id;
+  try { localStorage.setItem('after-rain-resident-notes-v1', JSON.stringify({ read: [...readResidentNotes], last: lastResidentNote })); } catch {}
+  return note;
+}
 const residentWindows = [];
 const city = [];
 city.push(`<svg viewBox="0 0 1600 1000" xmlns="http://www.w3.org/2000/svg" role="group" aria-labelledby="city-title"><title id="city-title">Тихий квартал: кафе, заметки, комната для фокуса и три окна с записками жителей</title><defs>
@@ -145,7 +205,8 @@ residents.forEach((resident, index) => {
 city.push('</svg>');
 select('#scene').innerHTML = city.join('');
 const residentButtons = [...document.querySelectorAll('.resident-window')];
-let litResident = 0;
+const lastResidentIndex = residents.findIndex((resident) => resident.notes.some((note) => note.id === lastResidentNote));
+let litResident = lastResidentIndex < 0 ? Math.floor(Math.random() * residents.length) : (lastResidentIndex + 1) % residents.length;
 let residentTimeout;
 let pageAway = false;
 function scenePaused() { return document.hidden || dialog.open || pageAway; }
@@ -153,6 +214,7 @@ function lightResident(index) {
   litResident = index;
   residentButtons.forEach((button, buttonIndex) => button.classList.toggle('is-lit', buttonIndex === index));
 }
+lightResident(litResident);
 function scheduleResident() {
   clearTimeout(residentTimeout);
   if (scenePaused() || reducedMotion.matches) return;
@@ -584,8 +646,9 @@ function mixerRoom() {
 }
 function residentRoom(index) {
   const resident = residents[index];
+  const note = chooseResidentNote(index);
   lightResident(index);
-  content.innerHTML = `<span class="room-eyebrow">Жизнь в окнах</span><h2 id="room-title">${resident.title}</h2>
+  content.innerHTML = `<span class="room-eyebrow">Жизнь в окнах</span><h2 id="room-title">${note.title}</h2>
     <svg class="resident-illustration" viewBox="0 0 240 120" fill="none" aria-hidden="true">
       <path d="M38 99h164M49 18h142v81H49Z" stroke="#789183" stroke-opacity=".45"/>
       <path d="M51 20h138v77H51Z" fill="#d5ad6e" fill-opacity=".1"/>
@@ -595,7 +658,7 @@ function residentRoom(index) {
       <path d="${resident.object}" stroke="#d7bf95" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" transform="translate(20 0)"/>
       <defs><radialGradient id="resident-glow"><stop stop-color="#e5c28c" stop-opacity=".25"/><stop offset="1" stop-color="#e5c28c" stop-opacity="0"/></radialGradient></defs>
     </svg>
-    <blockquote class="resident-note">${resident.note}</blockquote><p class="resident-signature"><strong>${resident.name}</strong><span>${resident.place}</span></p>
+    <blockquote class="resident-note">${note.text}</blockquote><p class="resident-signature"><strong>${resident.name}</strong><span>${resident.place}</span></p>
     <div class="resident-actions"><button class="dialog-action" id="resident-next">Другое окно ${svgIcon('external')}</button><button class="mix-clear" id="resident-return">Вернуться в город</button></div>`;
   select('#resident-next').addEventListener('click', () => {
     residentRoom((litResident + 1) % residents.length);
