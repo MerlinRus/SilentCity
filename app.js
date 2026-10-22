@@ -627,6 +627,33 @@ select('#wander').addEventListener('click', () => {
 });
 function leaveCity() { world.classList.remove('immersive'); select('#return').hidden = true; select('#wander').focus(); }
 select('#return').addEventListener('click', leaveCity);
+const scene = select('#scene');
+function centerExploration() {
+  if (!world.classList.contains('exploring')) return;
+  const scale = scene.querySelector('svg').getBoundingClientRect().width / 1600;
+  scene.scrollLeft = Math.max(0, 1050 * scale - scene.clientWidth / 2);
+  scene.scrollTop = Math.max(0, 470 * scale - scene.clientHeight / 2);
+}
+function setExploration(enabled) {
+  world.classList.toggle('exploring', enabled);
+  select('#explore-city').setAttribute('aria-expanded', String(enabled));
+  select('#explore-return').hidden = !enabled;
+  select('#explore-hint').hidden = !enabled;
+  scene.tabIndex = enabled ? 0 : -1;
+  if (enabled) {
+    centerExploration();
+    scene.focus({ preventScroll: true });
+  } else {
+    scene.scrollLeft = 0;
+    scene.scrollTop = 0;
+    const launcher = select('#explore-city');
+    (launcher.getClientRects().length ? launcher : select('#help')).focus({ preventScroll: true });
+  }
+}
+select('#explore-city').addEventListener('click', () => setExploration(true));
+select('#explore-return').addEventListener('click', () => setExploration(false));
+scene.addEventListener('pointerdown', () => { if (world.classList.contains('exploring')) select('#explore-hint').hidden = true; }, { passive: true });
+window.addEventListener('resize', centerExploration, { passive: true });
 async function toggleFullscreen() {
   try {
     if (document.fullscreenElement) await document.exitFullscreen();
@@ -779,7 +806,10 @@ document.addEventListener('keydown', (event) => {
   if (event.target.matches('input,textarea') || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
   if (event.key.toLowerCase() === 'm') toggleAudio();
   if (event.key.toLowerCase() === 'f') toggleFullscreen();
-  if (event.key === 'Escape' && !dialog.open && world.classList.contains('immersive')) leaveCity();
+  if (event.key === 'Escape' && !dialog.open) {
+    if (world.classList.contains('exploring')) setExploration(false);
+    else if (world.classList.contains('immersive')) leaveCity();
+  }
 });
 function updateNightLighting(now) {
   if (scenePaused()) return;
