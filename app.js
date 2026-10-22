@@ -115,12 +115,18 @@ function building({ x, y, width, height, depth, rows, columns, color = '#263b3b'
       const isLit = random() < lit;
       const tint = random() > .65 ? '#d4bd8b' : '#b79865';
       const shape = [[windowX, windowY + offset], [windowX + windowWidth, windowY + offset + windowWidth * .2], [windowX + windowWidth, windowY + offset + windowWidth * .2 + windowHeight], [windowX, windowY + offset + windowHeight]];
+      const nightWindow = isLit && detail && (row + column) % 2 === 0;
+      if (nightWindow) {
+        city.push(polygon(shape, '#142a2d', 'opacity=".7"'));
+        city.push(`<g class="night-window night-window-${1 + (row + column) % 3}">`);
+      }
       city.push(polygon(shape, isLit ? tint : '#142a2d', `opacity="${isLit ? .55 + random() * .4 : .7}"`));
       if (isLit && detail) {
         city.push(`<ellipse cx="${windowX + windowWidth / 2}" cy="${windowY + offset + windowHeight / 2}" rx="${windowWidth + 8}" ry="${windowHeight + 6}" fill="url(#lamp)" opacity=".5"/>`);
         city.push(`<path d="M${windowX + windowWidth * .55} ${windowY + offset + windowWidth * .11}v${windowHeight}" stroke="#273b37" stroke-width="2" opacity=".75"/>`);
         if (random() > .5) city.push(polygon([[windowX, windowY + offset], [windowX + windowWidth * .35, windowY + offset + 2], [windowX + windowWidth * .24, windowY + offset + windowHeight], [windowX, windowY + offset + windowHeight]], '#635f48', 'opacity=".6"'));
       }
+      if (nightWindow) city.push('</g>');
       if (x === 858) {
         const residentIndex = residents.findIndex((resident) => resident.row === row && resident.column === column);
         if (residentIndex !== -1) residentWindows[residentIndex] = { x: windowX, y: windowY + offset, width: windowWidth, height: windowHeight };
@@ -148,12 +154,27 @@ for (let index = 0; index < 20; index++) {
 city.push(`<path d="M440 519 1080 375 1730 616 1120 960 380 697Z" fill="url(#road)"/>`);
 city.push(`<path d="m474 544 606-139 574 216M612 701l490 145 496-229" fill="none" stroke="#9aafa0" stroke-opacity=".13" stroke-width="2"/>`);
 city.push(`<path d="m610 604 400 105 465-187" fill="none" stroke="#c0c9b1" stroke-opacity=".14" stroke-width="2" stroke-dasharray="25 25"/>`);
+city.push(`<g id="city-tram" aria-hidden="true" pointer-events="none">
+  <ellipse cx="27" cy="-9" rx="55" ry="12" transform="rotate(-27 27 -9)" fill="#091d24" opacity=".45"/>
+  <path d="M0 0 70-35V-62L0-27Z" fill="#78857a"/><path d="M0 0-18-9v-27L0-27Z" fill="#465e58"/>
+  <path d="M0-27 70-62 52-71-18-36Z" fill="#8b9584"/>
+  <path d="m7-27 12-6v15L7-12Zm17-8 12-6v15l-12 6Zm17-8 12-6v15l-12 6Zm17-8 6-3v15l-6 3Z" fill="#d5bd86" opacity=".8"/>
+  <path d="m-14-29 10 5v12l-10-5Z" fill="#b9b485" opacity=".65"/><path d="m0-6 70-35" stroke="#b4b098" stroke-width="2"/>
+  <path d="m12-2 8-4v4l-8 4Zm39-20 8-4v4l-8 4Z" fill="#142a2d"/>
+  <path d="m21-48 7-18 14 5-7 12M-15-8l7 3" fill="none" stroke="#8d9a88" stroke-width="1.5"/>
+</g>`);
 building({ x: 1340, y: 218, width: 185, height: 330, depth: 100, rows: 9, columns: 5, color: '#2b4140', lit: .13 });
 building({ x: 1060, y: 310, width: 173, height: 236, depth: 100, rows: 6, columns: 4, color: '#2a4140', lit: .15 });
 building({ x: 610, y: 365, width: 152, height: 225, depth: 100, rows: 6, columns: 4, color: '#2e4140', lit: .21 });
 city.push(`<path d="m692 593 442 94 175-83 3 17-175 92-446-101Z" fill="#58665b" opacity=".38"/>`);
 city.push(`<path d="m692 612 442 94 175-83v18l-175 92-442-101Z" fill="url(#pavement)"/>`);
 building({ x: 858, y: 240, width: 270, height: 405, depth: 122, rows: 9, columns: 6, color: '#344540', side: '#233a37', roof: '#41514a', lit: .32 });
+city.push(`<g transform="translate(875 392) skewY(11.3)" aria-hidden="true" pointer-events="none">
+  <path d="M0 0h20v23H0Z" fill="#b39b6e" opacity=".6"/><path d="M-2 24h25" stroke="#8a987e" stroke-width="2"/>
+  <g class="cat-figure"><path d="M7 23c-5 0-4-5-2-9 1-3 5-3 7 0l4 9Zm6-2c10 0 8-10 4-8" fill="#172e2e" stroke="#172e2e" stroke-width="2" stroke-linecap="round"/>
+  <g class="cat-head"><path d="m5 13-1-9 4 3 3-1 4-3v9c-2 4-8 5-10 1Z" fill="#172e2e"/><path d="M6 10h2m3-1h2" stroke="#d3c18d" stroke-width="1" stroke-linecap="round"/></g></g>
+  <path d="M0 0h3L2 23H0Zm20 0h-3l1 23h2Z" fill="#6e775e" opacity=".6"/>
+</g>`);
 city.push(`<path d="m875 246 28-16 0-66m-13 22 27 5m-14-13 16-8" stroke="#53645b" stroke-width="2" fill="none"/>`);
 city.push(`<path d="m861 603 266 54 122-69v17l-122 69-266-54Z" fill="#152c2d"/>`);
 city.push(polygon([[860, 608], [1128, 661], [1128, 702], [860, 649]], '#1a302e'));
@@ -166,7 +187,11 @@ for (let index = 0; index < 7; index++) {
 }
 city.push(`<path d="m855 607 277 55-5 14-277-55Z" fill="#8d8966"/><path d="m855 607 277 55" stroke="#c9bb88" stroke-opacity=".65" stroke-width="2"/>`);
 city.push(`<text x="937" y="636" fill="#433e2c" font-size="12" letter-spacing="3" transform="rotate(11.3 937 636)">НЕ СПИТСЯ</text>`);
-city.push(`<path d="m1131 664 116-65v60l-116 65Z" fill="#152b2b"/><path d="m1146 667 27-15v42l-27 15Z" fill="#b6a174" opacity=".55"/>`);
+city.push(`<path d="m1131 664 116-65v60l-116 65Z" fill="#152b2b"/><path d="m1146 667 27-15v42l-27 15Z" fill="#4a5844" opacity=".55"/>
+  <g class="entrance-lights" aria-hidden="true" pointer-events="none" fill="#d5ba83">
+    <path d="m1142 553 13-7v23l-13 7Zm0 39 13-7v23l-13 7Zm0 40 13-7v23l-13 7Z"/>
+    <path d="m1146 667 27-15v42l-27 15Z"/><ellipse cx="1155" cy="712" rx="30" ry="9" fill="url(#lamp)"/>
+  </g>`);
 city.push(`<path d="m730 729 390 82 245-133 0 4-245 136-390-82Z" fill="#6f8271" opacity=".26"/>`);
 city.push(`<path d="m0 908 460-190 282 61 360 221Z" fill="#11262b"/>`);
 city.push(`<path d="m1003 882 264-151 333 99v170h-390Z" fill="#0c2127"/>`);
@@ -180,6 +205,15 @@ function lamp(x, y, height = 100) {
 }
 lamp(799, 699, 105); lamp(1210, 777, 105); lamp(1445, 651, 90); lamp(654, 630, 85);
 city.push(`<g transform="translate(1330 735) rotate(-28)"><ellipse rx="43" ry="21" fill="#071b2266"/><rect x="-34" y="-20" width="68" height="30" rx="10" fill="#60736c"/><rect x="-16" y="-19" width="31" height="28" rx="7" fill="#233b3a"/><path d="M-31-10h10m-10 11h10M21-10h8M21 1h8" stroke="#d6caa0" stroke-width="3"/></g>`);
+city.push(`<g class="courtyard-details" aria-hidden="true" pointer-events="none">
+  <g transform="translate(833 685) rotate(11.3) scale(.8)"><ellipse cx="16" cy="11" rx="31" ry="5" fill="#0a2026" opacity=".6"/>
+    <g fill="none" stroke="#8b9c86" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" opacity=".75"><circle r="10"/><circle cx="32" r="10"/><path d="m0 0 10-17L14 0H0m14 0 11-17 7 17M10-17h15l-2-5h-5M10-17 7-23H3"/></g>
+  </g>
+  <g transform="translate(1138 712) rotate(-25)"><path d="M-17-10Q0-35 17-10 8-15 0-10q-8-5-17 0Z" fill="#7f8c75"/><path d="M0-10v28q0 7 6 5M0-25v-4" fill="none" stroke="#c0ad83" stroke-width="1.5" stroke-linecap="round"/></g>
+  <g transform="translate(790 774) rotate(11.3)"><ellipse rx="36" ry="8" fill="#8ba69a" opacity=".13"/>
+    <path d="m-12-4 12-13L12-4Z" fill="#c7c6ab" opacity=".75"/><path d="M-18-3h36L10 5H-8Z" fill="#a8b3a1"/><path d="M0-17V-4M-18-3 0 2l18-5m-44 14h16m18 2h13" fill="none" stroke="#6f8982" stroke-width="1"/>
+  </g>
+</g>`);
 for (let index = 0; index < 95; index++) {
   const x = 550 + random() * 1000;
   const y = 700 + random() * 220;
@@ -208,7 +242,9 @@ select('#scene').innerHTML = city.join('');
 const residentButtons = [...document.querySelectorAll('.resident-window')];
 const lastResidentIndex = residents.findIndex((resident) => resident.notes.some((note) => note.id === lastResidentNote));
 let litResident = lastResidentIndex < 0 ? Math.floor(Math.random() * residents.length) : (lastResidentIndex + 1) % residents.length;
-let residentTimeout;
+const cityTram = select('#city-tram');
+let cityLifeTimeout;
+let cityLifeTick = 0;
 let pageAway = false;
 function scenePaused() { return document.hidden || dialog.open || pageAway; }
 function lightResident(index) {
@@ -216,10 +252,21 @@ function lightResident(index) {
   residentButtons.forEach((button, buttonIndex) => button.classList.toggle('is-lit', buttonIndex === index));
 }
 lightResident(litResident);
-function scheduleResident() {
-  clearTimeout(residentTimeout);
+function advanceCityLife() {
+  cityLifeTick++;
+  lightResident((litResident + 1) % residents.length);
+  world.classList.toggle('cat-turned', cityLifeTick % 4 >= 2);
+  world.classList.toggle('cat-away', cityLifeTick % 8 === 5 || cityLifeTick % 8 === 6);
+  world.classList.toggle('entrance-lit', cityLifeTick % 6 === 1);
+  if (cityLifeTick % 10 === 2) cityTram.classList.add('tram-passing');
+}
+cityTram.addEventListener('animationend', (event) => {
+  if (event.animationName === 'city-tram-pass') cityTram.classList.remove('tram-passing');
+});
+function scheduleCityLife() {
+  clearTimeout(cityLifeTimeout);
   if (scenePaused() || reducedMotion.matches) return;
-  residentTimeout = setTimeout(() => { lightResident((litResident + 1) % residents.length); scheduleResident(); }, 18000);
+  cityLifeTimeout = setTimeout(() => { advanceCityLife(); scheduleCityLife(); }, 18000);
 }
 
 const canvas = select('#rain');
@@ -283,8 +330,13 @@ function restartRain() {
 }
 function syncSceneActivity() {
   world.classList.toggle('scene-paused', scenePaused());
+  if (reducedMotion.matches) {
+    world.classList.remove('cat-turned', 'cat-away', 'entrance-lit');
+    cityTram.classList.remove('tram-passing');
+  }
+  updateNightLighting(new Date());
   restartRain();
-  scheduleResident();
+  scheduleCityLife();
 }
 window.addEventListener('resize', resizeRain);
 document.addEventListener('visibilitychange', syncSceneActivity);
@@ -292,7 +344,7 @@ dialog.addEventListener('close', syncSceneActivity);
 reducedMotion.addEventListener('change', syncSceneActivity);
 window.addEventListener('pagehide', () => { pageAway = true; syncSceneActivity(); });
 window.addEventListener('pageshow', () => { pageAway = false; syncSceneActivity(); });
-resizeRain(); scheduleResident();
+resizeRain(); scheduleCityLife();
 
 const stations = [
   { name: 'Тихие частоты', description: 'Кафе и мягкий эмбиент', sound: 'cafe', notes: [130.81, 164.81, 196, 246.94], wave: 'sine' },
@@ -729,10 +781,17 @@ document.addEventListener('keydown', (event) => {
   if (event.key.toLowerCase() === 'f') toggleFullscreen();
   if (event.key === 'Escape' && !dialog.open && world.classList.contains('immersive')) leaveCity();
 });
+function updateNightLighting(now) {
+  if (scenePaused()) return;
+  const hour = now.getHours();
+  const level = hour === 0 ? 1 + Math.floor(now.getMinutes() / 20) : hour < 6 ? 3 : 0;
+  if (world.dataset.nightLevel !== String(level)) world.dataset.nightLevel = String(level);
+}
 function updateClock() {
   const now = new Date();
   select('#clock').textContent = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   select('#clock').dateTime = now.toISOString();
+  updateNightLighting(now);
 }
 updateClock(); setInterval(updateClock, 10000);
 function updateVisualViewport() {
