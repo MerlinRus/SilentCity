@@ -196,7 +196,7 @@ button:active { filter: brightness(1.15); }
 }
 .world.exploring .header, .world.exploring .intro, .world.exploring .city-caption,
 .world.exploring .sound-dock, .world.exploring .bottom-note,
-.world.exploring #return, .world.exploring #explore-city { display: none; }
+.world.exploring #return, .world.exploring #explore-city { opacity: 0; visibility: hidden; pointer-events: none; }
 .world.exploring .scene {
   inset: 0;
   width: 100%;
@@ -385,4 +385,44 @@ button:active { filter: brightness(1.15); }
 }
 @media (min-width: 1920px) {
   .city-caption { display: flex; left: 7.2%; right: auto; bottom: calc(4vh + 148px); }
+}
+
+.intro, .city-caption { transition: none; }
+@media (prefers-reduced-motion: no-preference) {
+  :root { --ease-ui: cubic-bezier(.23, 1, .32, 1); }
+  .pointer-motion .header, .pointer-motion .intro, .pointer-motion .city-caption,
+  .pointer-motion .sound-dock, .pointer-motion .bottom-note,
+  .pointer-motion #return, .pointer-motion #explore-city {
+    transition: opacity 250ms var(--ease-ui), transform 250ms var(--ease-ui), visibility 0s;
+  }
+  .pointer-motion .world.exploring :is(.header, .intro, .city-caption, .sound-dock, .bottom-note, #return, #explore-city),
+  .pointer-motion .world.immersive :is(.intro, .city-caption) { transition-delay: 0s, 0s, 250ms; }
+  .pointer-motion .vignette { transition: opacity 250ms var(--ease-ui); }
+  .pointer-motion button { transition: scale 160ms var(--ease-ui), background-color 160ms, color 160ms; }
+  .pointer-motion button:active { scale: .97; filter: none; }
+  @supports (overlay: auto) and (transition-behavior: allow-discrete) {
+    .pointer-motion dialog {
+      opacity: 0;
+      transform: translateY(8px) scale(.97);
+      transition: opacity 250ms var(--ease-ui), transform 250ms var(--ease-ui), display 250ms allow-discrete, overlay 250ms allow-discrete;
+    }
+    .pointer-motion dialog[open] { opacity: 1; transform: none; }
+    .pointer-motion dialog::backdrop {
+      opacity: 0;
+      transition: opacity 250ms var(--ease-ui), display 250ms allow-discrete, overlay 250ms allow-discrete;
+    }
+    .pointer-motion dialog[open]::backdrop { opacity: 1; }
+    .pointer-motion dialog:not([open]), .pointer-motion dialog:not([open])::backdrop { pointer-events: none; }
+    @media (max-width: 1100px) {
+      .pointer-motion dialog { transform: translateY(calc(-100% + 18px)); }
+      .pointer-motion dialog[open] { transform: translateY(-100%); }
+    }
+    @starting-style {
+      .pointer-motion dialog[open] { opacity: 0; transform: translateY(8px) scale(.97); }
+      .pointer-motion dialog[open]::backdrop { opacity: 0; }
+      @media (max-width: 1100px) {
+        .pointer-motion dialog[open] { transform: translateY(calc(-100% + 18px)); }
+      }
+    }
+  }
 }

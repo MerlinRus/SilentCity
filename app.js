@@ -3,6 +3,21 @@ const world = select('#world');
 const dialog = select('#room-dialog');
 const content = select('#room-content');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+function cancelUiMotion() {
+  content.getAnimations?.({ subtree: true }).forEach((animation) => animation.cancel());
+}
+document.addEventListener('pointerdown', () => document.documentElement.classList.add('pointer-motion'), { capture: true, passive: true });
+document.addEventListener('keydown', () => {
+  if (!document.documentElement.classList.contains('pointer-motion')) return;
+  document.documentElement.classList.remove('pointer-motion');
+  cancelUiMotion();
+}, { capture: true });
+reducedMotion.addEventListener('change', cancelUiMotion);
+function revealContent(element) {
+  element.getAnimations?.().forEach((animation) => animation.cancel());
+  if (reducedMotion.matches || !document.documentElement.classList.contains('pointer-motion') || !element.animate) return;
+  element.animate([{ opacity: .5, transform: 'translateY(4px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 180, easing: 'cubic-bezier(.23,1,.32,1)' });
+}
 const iconPaths = {
   external: 'M7 17 17 7M7 7h10v10',
   notes: 'M8 4h11v14M5 7h11v14H5ZM8 11h5m-5 4h5',
@@ -628,6 +643,7 @@ select('#wander').addEventListener('click', () => {
 function leaveCity() { world.classList.remove('immersive'); select('#return').hidden = true; select('#wander').focus(); }
 select('#return').addEventListener('click', leaveCity);
 const scene = select('#scene');
+const cityHud = document.querySelectorAll('.header, .intro, .city-caption, .sound-dock, .bottom-note, #return, #explore-city');
 function centerExploration() {
   if (!world.classList.contains('exploring')) return;
   const scale = scene.querySelector('svg').getBoundingClientRect().width / 1600;
@@ -635,6 +651,7 @@ function centerExploration() {
   scene.scrollTop = Math.max(0, 470 * scale - scene.clientHeight / 2);
 }
 function setExploration(enabled) {
+  cityHud.forEach((element) => { element.inert = enabled; });
   world.classList.toggle('exploring', enabled);
   select('#explore-city').setAttribute('aria-expanded', String(enabled));
   select('#explore-return').hidden = !enabled;
@@ -744,12 +761,15 @@ function residentRoom(index) {
     const nextNote = chooseResidentNote(index);
     select('#room-title').textContent = nextNote.title;
     select('.resident-note').textContent = nextNote.text;
+    revealContent(select('#room-title'));
+    revealContent(select('.resident-note'));
   });
   select('#resident-next').addEventListener('click', () => {
     residentRoom((litResident + 1) % residents.length);
     select('#resident-next').focus({ preventScroll: true });
   });
   select('#resident-return').addEventListener('click', () => dialog.close());
+  if (dialog.open) revealContent(content);
 }
 function openRoom(room) {
   dialog.classList.toggle('mixer-dialog', room === 'mixer');
@@ -779,6 +799,7 @@ function openRoom(room) {
     content.innerHTML = `<span class="room-eyebrow">Добро пожаловать в квартал</span><h2 id="room-title">Здесь можно выдохнуть.</h2><p>Нажми на светящуюся метку в городе. В кафе — три музыкальные волны. В окне с карандашом — место для мыслей. Под часами — 25 минут тишины для одного дела.</p><p>Ползунки внизу меняют дождь и музыку. «Побыть здесь» убирает заголовок и включает звук.</p><div class="help-keys"><span><kbd>M</kbd>звук</span><span><kbd>F</kbd>весь экран</span><span><kbd>Esc</kbd>назад</span></div>`;
   }
   if (!dialog.open) dialog.showModal();
+  else if (room !== 'resident') revealContent(content);
   syncSceneActivity();
 }
 document.querySelectorAll('.city-place').forEach((place) => {
