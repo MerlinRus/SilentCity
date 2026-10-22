@@ -23,6 +23,7 @@ function revealContent(element) {
   element.animate([{ opacity: .5, transform: 'translateY(4px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 180, easing: 'cubic-bezier(.23,1,.32,1)' });
 }
 const iconPaths = {
+  radio: 'M4 8h16v12H4ZM7 8l10-5M8 12v4m-2-2h4m4-2h3m-3 4h3',
   external: 'M7 17 17 7M7 7h10v10',
   notes: 'M8 4h11v14M5 7h11v14H5ZM8 11h5m-5 4h5',
   music: 'M9 18V5l11-2v13M9 8l11-2M9 18a3 2 0 1 1-6 0 3 2 0 1 1 6 0m11-2a3 2 0 1 1-6 0 3 2 0 1 1 6 0',
@@ -107,7 +108,7 @@ function chooseResidentNote(index) {
 }
 const residentWindows = [];
 const city = [];
-city.push(`<svg viewBox="0 0 1600 1000" xmlns="http://www.w3.org/2000/svg" role="group" aria-labelledby="city-title"><title id="city-title">Тихий квартал: кафе, заметки, комната для фокуса и три окна с записками жителей</title><defs>
+city.push(`<svg viewBox="0 0 1600 1000" xmlns="http://www.w3.org/2000/svg" role="group" aria-labelledby="city-title"><title id="city-title">Тихий квартал: кафе, радио, заметки, комната для фокуса и три окна с записками жителей</title><defs>
   <linearGradient id="road" x2="0" y2="1"><stop stop-color="#253a3b"/><stop offset="1" stop-color="#172b31"/></linearGradient>
   <linearGradient id="glass" x2="0" y2="1"><stop stop-color="#f0cb8f"/><stop offset="1" stop-color="#c28d52"/></linearGradient>
   <linearGradient id="reflection" x2="0" y2="1"><stop stop-color="#d3b17a" stop-opacity=".18"/><stop offset="1" stop-color="#d3b17a" stop-opacity="0"/></linearGradient>
@@ -239,11 +240,12 @@ for (let index = 0; index < 95; index++) {
   city.push(`<path d="M${x} ${y}l${8 + random() * 28} ${random() * 2}" stroke="${random() > .75 ? '#c6b17f' : '#6c9490'}" stroke-opacity="${random() * .17}"/>`);
 }
 function marker(x, y, label, icon, room) {
-  city.push(`<g class="city-place" role="button" tabindex="0" aria-label="${label}" data-room="${room}"><rect x="${x - 50}" y="${y - 55}" width="100" height="100" fill="transparent" pointer-events="all"/><path class="window-light" d="M${x - 7} ${y + 15}h14v22h-14Z" fill="#f0ce93" opacity=".6"/><g class="place-marker"><rect class="marker-bg" x="${x - 17}" y="${y - 22}" width="34" height="34" rx="17" fill="#233c38" stroke="#c8bb8f" stroke-opacity=".65"/><svg x="${x - 9}" y="${y - 14}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f1dbad" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${iconPaths[icon]}"/></svg><path d="m${x - 4} ${y + 12} 4 5 4-5" fill="#233c38" stroke="#c8bb8f" stroke-opacity=".65"/><rect x="${x - 49}" y="${y - 49}" width="98" height="21" rx="10" fill="#1d3332" fill-opacity=".95"/><text x="${x}" y="${y - 35}" text-anchor="middle" font-size="10" fill="#cfceaf">${label}</text></g></g>`);
+  city.push(`<g class="city-place" role="button" tabindex="0" aria-label="${label}" data-room="${room}"><rect x="${x - 50}" y="${y - 55}" width="100" height="100" fill="transparent" pointer-events="all"/><g class="place-marker"><rect class="marker-bg" x="${x - 17}" y="${y - 22}" width="34" height="34" rx="17" fill="#233c38" stroke="#c8bb8f" stroke-opacity=".65"/><svg x="${x - 9}" y="${y - 14}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f1dbad" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${iconPaths[icon]}"/></svg><path d="m${x - 4} ${y + 12} 4 5 4-5" fill="#233c38" stroke="#c8bb8f" stroke-opacity=".65"/><rect x="${x - 49}" y="${y - 49}" width="98" height="21" rx="10" fill="#1d3332" fill-opacity=".95"/><text x="${x}" y="${y - 35}" text-anchor="middle" font-size="10" fill="#cfceaf">${label}</text></g></g>`);
 }
 marker(952, 602, 'Кафе «Не спится»', 'music', 'radio');
 marker(1018, 427, 'Твои мысли', 'pencil', 'notes');
 marker(1172, 363, 'Тихая комната', 'clock', 'focus');
+marker(1110, 538, 'Радио', 'radio', 'live-radio');
 residents.forEach((resident, index) => {
   const { x, y, width, height } = residentWindows[index];
   city.push(`<g class="resident-window${index === 0 ? ' is-lit' : ''}" role="button" tabindex="0" aria-label="Записка из окна: ${resident.name}" aria-haspopup="dialog" data-resident="${index}" transform="translate(${x} ${y}) skewY(11.3)">
@@ -368,7 +370,12 @@ resizeRain(); scheduleCityLife();
 const stations = [
   { name: 'Тихие частоты', description: 'Кафе и мягкий эмбиент', sound: 'cafe', notes: [130.81, 164.81, 196, 246.94], wave: 'sine' },
   { name: 'Последний трамвай', description: 'Стук колёс и ночной путь', sound: 'train', notes: [], wave: 'triangle' },
-  { name: 'Между снами', description: 'Море и мягкий прибой', sound: 'waves', notes: [], wave: 'sine' }
+  { name: 'Между снами', description: 'Море и мягкий прибой', sound: 'waves', notes: [], wave: 'sine' },
+  { name: 'Рок-н-ролл', description: '181.FM · Good Time Oldies', stream: 'https://listen.181fm.com/181-goodtime_128k.mp3', notes: [], wave: 'sine' },
+  { name: 'Лоу-фай', description: 'FluxFM · Chillhop', stream: 'https://channels.fluxfm.de/chillhop/externalembedflxhp/stream.mp3', notes: [], wave: 'sine' },
+  { name: 'Электро', description: 'FluxFM · ElektroFlux', stream: 'https://channels.fluxfm.de/elektro-flux/externalembedflxhp/stream.mp3', notes: [], wave: 'sine' },
+  { name: 'Джаз', description: 'FluxFM · Xjazz', stream: 'https://channels.fluxfm.de/x-jazz/externalembedflxhp/stream.mp3', notes: [], wave: 'sine' },
+  { name: 'Блюз', description: '181.FM · True Blues', stream: 'https://listen.181fm.com/181-blues_128k.mp3', notes: [], wave: 'sine' }
 ];
 let audio;
 let masterGain;
@@ -382,6 +389,9 @@ let toastTimeout;
 let audioBusy = false;
 let activeTrack;
 let stationRequest = 0;
+let pendingTrack;
+let stationFailed = false;
+let liveStationIndex = 4;
 const soundGroups = [
   { id: 'weather', name: 'Погода' },
   { id: 'water', name: 'У воды' },
@@ -464,14 +474,16 @@ function syncMixer() {
     radioRow.querySelector('button').setAttribute('aria-label', `${musicLevel ? 'Выключить' : 'Включить'}: Ночное радио`);
     setRangeValue(radioRow.querySelector('input'), musicLevel);
     radioRow.querySelector('output').textContent = `${Math.round(musicLevel * 100)}%`;
+    radioRow.querySelector('.layer-detail').textContent = stations[stationIndex].name;
   }
   const mixPlay = select('#mix-play');
   if (mixPlay) mixPlay.textContent = playing ? 'Пауза' : 'Слушать микс';
   const feedback = select('#mix-feedback');
   if (feedback) feedback.firstChild.textContent = activeCount ? 'Настройки сохраняются в этом браузере. ' : 'Всё выключено. Начни с одного звука. ';
   select('#station-name').textContent = selectedLayers.length ? 'Свой микс' : stations[stationIndex].name;
-  select('.dock-caption').textContent = selectedLayers.length ? 'Твоя атмосфера' : 'Ночное радио';
+  select('.dock-caption').textContent = selectedLayers.length ? 'Твоя атмосфера' : stations[stationIndex].stream ? 'Прямой эфир' : 'Ночные сцены';
   select('#station').setAttribute('aria-label', selectedLayers.length ? 'Открыть свой микс' : 'Сменить радиостанцию');
+  syncLiveRadio();
 }
 function createLayerTrack(layer) {
   const element = document.createElement('audio');
@@ -520,12 +532,13 @@ async function setLayerLevel(id, value, updateMix = true) {
 }
 function setRadioLevel(value) {
   musicLevel = Math.max(0, Math.min(1, value));
+  if (!musicLevel) cancelPendingStation();
   if (audio) {
     musicGain.gain.setTargetAtTime(musicLevel * .8, audio.currentTime, .12);
-    if (musicLevel > 0 && playing) switchStation(stationIndex).catch(() => {});
+    if (musicLevel > 0 && playing && !pendingTrack) switchStation(stationIndex).catch(() => {});
     if (!musicLevel && activeTrack) {
       const track = activeTrack;
-      setTimeout(() => { if (!musicLevel && activeTrack === track) track.element.pause(); }, 400);
+      setTimeout(() => { if (!musicLevel && activeTrack === track) { pauseStation(); syncLiveRadio(); } }, 400);
     }
   }
   saveMix(); syncMixer();
@@ -574,6 +587,8 @@ function playNote() {
   oscillator.onended = () => { oscillator.disconnect(); envelope.disconnect(); };
 }
 function disposeTrack(track) {
+  if (track.disposed) return;
+  track.disposed = true;
   track.element.pause();
   track.element.removeAttribute('src');
   track.element.load();
@@ -581,27 +596,46 @@ function disposeTrack(track) {
   track.source.disconnect();
   track.gain.disconnect();
 }
+function cancelPendingStation() {
+  stationRequest++;
+  if (pendingTrack) disposeTrack(pendingTrack);
+  pendingTrack = null;
+}
+function pauseStation() {
+  cancelPendingStation();
+  if (!activeTrack) return;
+  if (stations[activeTrack.index].stream) {
+    disposeTrack(activeTrack);
+    activeTrack = null;
+  } else activeTrack.element.pause();
+}
 async function switchStation(index) {
+  cancelPendingStation();
   const request = ++stationRequest;
+  stationFailed = false;
   if (!audio) makeAudio();
-  if (activeTrack?.index === index) {
+  if (activeTrack?.index === index && !activeTrack.element.error && !activeTrack.element.ended) {
     const playback = activeTrack.element.play();
     await audio.resume();
     await playback;
     return request === stationRequest;
   }
+  const station = stations[index];
   const element = document.createElement('audio');
-  element.src = `sounds/${stations[index].sound}.mp3?v=2`;
-  element.loop = true;
+  if (station.stream) element.crossOrigin = 'anonymous';
+  element.src = station.stream || `sounds/${station.sound}.mp3?v=2`;
+  element.loop = !station.stream;
   element.preload = 'none';
   element.hidden = true;
-  element.dataset.stationAudio = stations[index].sound;
+  element.dataset.stationAudio = station.sound || station.name;
   document.body.append(element);
   const source = audio.createMediaElementSource(element);
   const gain = audio.createGain();
   gain.gain.value = 0;
   source.connect(gain); gain.connect(musicGain);
   const track = { element, source, gain, index };
+  pendingTrack = track;
+  syncLiveRadio();
   let timeout;
   try {
     const playback = element.play();
@@ -617,27 +651,41 @@ async function switchStation(index) {
     gain.gain.setTargetAtTime(1, now, .2);
     activeTrack = track;
     stationIndex = index;
+    stationFailed = false;
+    if (station.stream) liveStationIndex = index;
     select('#station-name').textContent = stations[index].name;
     changeChord();
     saveMix();
-    element.addEventListener('error', () => {
-      if (activeTrack === track) toast('Запись прервалась. Выключи и включи звук, чтобы повторить.');
-    });
+    const reportInterruption = () => {
+      if (activeTrack !== track) return;
+      stationFailed = true;
+      syncLiveRadio();
+      toast(station.stream ? 'Эфир прервался. Нажми «Повторить подключение» в радио.' : 'Запись прервалась. Выключи и включи звук, чтобы повторить.');
+    };
+    element.addEventListener('error', reportInterruption);
+    if (station.stream) element.addEventListener('ended', reportInterruption);
     return true;
   } catch (error) {
     disposeTrack(track);
-    if (request === stationRequest) toast('Не удалось загрузить запись. Попробуй выбрать волну ещё раз.');
+    if (request !== stationRequest) return false;
+    stationFailed = true;
+    toast(station.stream ? 'Станция недоступна. Попробуй другой эфир или повтори подключение.' : 'Не удалось загрузить запись. Попробуй выбрать волну ещё раз.');
     throw error;
-  } finally { clearTimeout(timeout); }
+  } finally {
+    clearTimeout(timeout);
+    if (pendingTrack === track) pendingTrack = null;
+    syncMixer();
+  }
 }
 async function toggleAudio() {
-  if (audioBusy) return;
+  if (audioBusy) { cancelPendingStation(); syncLiveRadio(); return; }
   audioBusy = true;
   try {
     if (!audio) makeAudio();
-    if (!playing && musicLevel > 0) await switchStation(stationIndex);
+    if (!playing && musicLevel > 0 && !await switchStation(stationIndex)) return;
     await audio.resume();
     playing = !playing;
+    if (!playing) cancelPendingStation();
     masterGain.gain.setTargetAtTime(playing ? .85 : 0, audio.currentTime, .35);
     select('#play').setAttribute('aria-label', playing ? 'Выключить звук' : 'Включить звук');
     select('#play').setAttribute('aria-pressed', String(playing));
@@ -654,11 +702,11 @@ async function toggleAudio() {
     syncMixer();
     if (!playing && activeTrack) {
       const track = activeTrack;
-      setTimeout(() => { if (!playing && activeTrack === track) track.element.pause(); }, 1200);
+      setTimeout(() => { if (!playing && activeTrack === track) { pauseStation(); syncLiveRadio(); } }, 1200);
     }
   } catch {
     toast('Не удалось включить звук. Попробуй ещё раз.');
-  } finally { audioBusy = false; }
+  } finally { audioBusy = false; syncLiveRadio(); }
 }
 select('#play').addEventListener('click', toggleAudio);
 select('#rain-level').addEventListener('input', (event) => {
@@ -834,8 +882,9 @@ function updateTimer() {
 }
 setInterval(updateTimer, 1000);
 function radioRoom() {
-  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button class="current" aria-current="page">Радио</button><button id="to-mixer">Свой микс</button></nav><h2 id="room-title">У каждого своя волна.</h2><p>Гул кафе, стук колёс или море за окном. Выбери место, в котором хочется остаться.</p><div class="station-list">${stations.map((station, index) => `<button class="station-choice ${index === stationIndex ? 'selected' : ''}" data-station="${index}" aria-pressed="${index === stationIndex}">${station.name}<span>${station.description}</span></button>`).join('')}</div><p>Добавь камин, ветер или метро во вкладке «Свой микс».<br><a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p><button class="dialog-action" id="radio-toggle">${playing ? 'Выключить звук' : 'Включить звук'}</button>`;
+  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button class="current" aria-current="page">Сцены</button><button id="to-live-radio">Эфир</button><button id="to-mixer">Свой микс</button></nav><h2 id="room-title">У каждого своя волна.</h2><p>Гул кафе, стук колёс или море за окном. Выбери место, в котором хочется остаться.</p><div class="station-list">${stations.map((station, index) => ({ ...station, index })).filter((station) => !station.stream).map((station) => `<button class="station-choice ${station.index === stationIndex ? 'selected' : ''}" data-station="${station.index}" aria-pressed="${station.index === stationIndex}">${station.name}<span>${station.description}</span></button>`).join('')}</div><p>Добавь камин, ветер или метро во вкладке «Свой микс».<br><a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p><button class="dialog-action" id="radio-toggle">${playing ? 'Выключить звук' : 'Включить звук'}</button>`;
   select('#to-mixer').addEventListener('click', () => openRoom('mixer'));
+  select('#to-live-radio').addEventListener('click', () => openRoom('live-radio'));
   content.querySelectorAll('[data-station]').forEach((button) => button.addEventListener('click', async () => {
     const index = Number(button.dataset.station);
     button.setAttribute('aria-busy', 'true');
@@ -848,16 +897,62 @@ function radioRoom() {
       return;
     } finally {
       if (dialog.open && content.querySelector('#radio-toggle')) {
-        radioRoom(); content.querySelector(`[data-station="${stationIndex}"]`).focus();
+        radioRoom(); content.querySelector(`[data-station="${index}"]`)?.focus();
       }
     }
   }));
   select('#radio-toggle').addEventListener('click', async () => { await toggleAudio(); const button = select('#radio-toggle'); if (button) button.textContent = playing ? 'Выключить звук' : 'Включить звук'; });
 }
+function syncLiveRadio() {
+  const status = select('#live-radio-status');
+  if (!status) return;
+  const connecting = pendingTrack?.index === liveStationIndex;
+  const current = stationIndex === liveStationIndex && playing && musicLevel > 0;
+  const station = stations[liveStationIndex];
+  status.textContent = connecting ? `Подключаю ${station.name.toLowerCase()}…` : stationFailed ? 'Не удалось продолжить эфир. Повтори подключение или выбери другую станцию.' : current ? `В эфире: ${station.description}` : 'Выбери жанр. Музыка начнётся с текущего момента эфира.';
+  content.querySelectorAll('[data-live-station]').forEach((button) => {
+    const index = Number(button.dataset.liveStation);
+    button.classList.toggle('selected', index === liveStationIndex);
+    button.setAttribute('aria-pressed', String(index === liveStationIndex));
+    button.setAttribute('aria-busy', String(pendingTrack?.index === index));
+  });
+  const button = select('#live-radio-toggle');
+  button.textContent = connecting ? 'Отменить подключение' : stationFailed ? 'Повторить подключение' : current ? 'Пауза' : 'Слушать эфир';
+}
+async function playLiveStation(index) {
+  liveStationIndex = index;
+  try {
+    const changed = await switchStation(index);
+    if (!changed) return;
+    if (!musicLevel) setRadioLevel(.45);
+    if (!playing) await toggleAudio();
+  } catch {} finally { syncMixer(); }
+}
+function liveRadioRoom() {
+  if (stations[stationIndex].stream) liveStationIndex = stationIndex;
+  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button id="to-radio">Сцены</button><button class="current" aria-current="page">Эфир</button><button id="to-mixer">Свой микс</button></nav>
+    <span class="room-eyebrow">Городская радиоточка ${svgIcon('radio')}</span><h2 id="room-title">Музыка не спит.</h2><p>Прямой эфир: новые треки, а не запись по кругу. Выбери свою волну.</p>
+    <div class="station-list">${stations.map((station, index) => station.stream ? `<button class="station-choice" data-live-station="${index}" aria-pressed="false">${station.name}<span>${station.description}</span></button>` : '').join('')}</div>
+    <p class="live-radio-status" id="live-radio-status" role="status" aria-atomic="true"></p><button class="dialog-action" id="live-radio-toggle">Слушать эфир</button>
+    <p class="live-radio-footnote">Рок-н-ролл и олдиз 50–60-х — Good Time Oldies, лоу-фай и чиллхоп — Chillhop. Станции: <a href="https://181.fm/" target="_blank" rel="noopener noreferrer">181.FM ${svgIcon('external')}</a> и <a href="https://www.fluxfm.de/flux-musik-streams" target="_blank" rel="noopener noreferrer">FluxFM ${svgIcon('external')}</a>.<br>Подключение к станции — только после нажатия. Нужен интернет; в эфире возможны реклама, джинглы и перебои. Громкость — ползунком «Радио», звуки города можно подмешать в «Своём миксе».</p>`;
+  select('#to-radio').addEventListener('click', () => openRoom('radio'));
+  select('#to-mixer').addEventListener('click', () => openRoom('mixer'));
+  content.querySelectorAll('[data-live-station]').forEach((button) => button.addEventListener('click', () => {
+    const index = Number(button.dataset.liveStation);
+    if (pendingTrack?.index !== index) playLiveStation(index);
+  }));
+  select('#live-radio-toggle').addEventListener('click', () => {
+    if (pendingTrack?.index === liveStationIndex) { cancelPendingStation(); syncLiveRadio(); }
+    else if (playing && musicLevel > 0 && stationIndex === liveStationIndex && !stationFailed) toggleAudio();
+    else playLiveStation(liveStationIndex);
+  });
+  syncLiveRadio();
+}
 function mixerRoom() {
   const groups = soundGroups.map((group) => `<section class="mixer-group" data-sound-group="${group.id}" aria-labelledby="sound-group-${group.id}"><h3 id="sound-group-${group.id}">${group.name}</h3>${layers.filter((layer) => layer.group === group.id).map((layer) => `<div class="layer-row" data-layer-row="${layer.id}"><button class="layer-toggle" aria-label="Включить: ${layer.name}" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${layer.icon}"/></svg></button><div class="layer-copy"><span class="layer-name">${layer.name}</span><span class="layer-detail">${layer.detail}</span></div><input type="range" min="0" max="100" value="0" aria-label="Громкость: ${layer.name}"><output>0%</output></div>`).join('')}</section>`).join('');
-  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button id="to-radio">Радио</button><button class="current" aria-current="page">Свой микс</button></nav><h2 id="room-title">Собери своё место.</h2><p class="mixer-intro">30 звуков на пять тем.<br>Смешивай и находи свой баланс.</p><label class="mixer-filter"><span>Тема</span><select id="sound-theme"><option value="all">Все темы · 30 звуков</option>${soundGroups.map((group) => `<option value="${group.id}">${group.name} · 6 звуков</option>`).join('')}</select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></label><div class="mixer-list">${groups}<div class="layer-row radio-layer" data-radio-row><button class="layer-toggle" aria-label="Выключить: Ночное радио" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v12H4ZM7 8l10-5M8 12v4m-2-2h4m4-2h3m-3 4h3"/></svg></button><div class="layer-copy"><span class="layer-name">Ночное радио</span><span class="layer-detail">${stations[stationIndex].name}</span></div><input type="range" min="0" max="100" value="45" aria-label="Громкость: Ночное радио"><output>45%</output></div></div><div class="mix-actions"><button class="dialog-action" id="mix-play">Слушать микс</button><button class="mix-clear" id="mix-clear">Выключить всё</button></div><p class="mix-footnote" id="mix-feedback" role="status">Настройки сохраняются в этом браузере. <a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p>`;
+  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button id="to-radio">Сцены</button><button id="to-live-radio">Эфир</button><button class="current" aria-current="page">Свой микс</button></nav><h2 id="room-title">Собери своё место.</h2><p class="mixer-intro">30 звуков на пять тем.<br>Смешивай и находи свой баланс.</p><label class="mixer-filter"><span>Тема</span><select id="sound-theme"><option value="all">Все темы · 30 звуков</option>${soundGroups.map((group) => `<option value="${group.id}">${group.name} · 6 звуков</option>`).join('')}</select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></label><div class="mixer-list">${groups}<div class="layer-row radio-layer" data-radio-row><button class="layer-toggle" aria-label="Выключить: Ночное радио" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v12H4ZM7 8l10-5M8 12v4m-2-2h4m4-2h3m-3 4h3"/></svg></button><div class="layer-copy"><span class="layer-name">Ночное радио</span><span class="layer-detail">${stations[stationIndex].name}</span></div><input type="range" min="0" max="100" value="45" aria-label="Громкость: Ночное радио"><output>45%</output></div></div><div class="mix-actions"><button class="dialog-action" id="mix-play">Слушать микс</button><button class="mix-clear" id="mix-clear">Выключить всё</button></div><p class="mix-footnote" id="mix-feedback" role="status">Настройки сохраняются в этом браузере. <a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p>`;
   select('#to-radio').addEventListener('click', () => openRoom('radio'));
+  select('#to-live-radio').addEventListener('click', () => openRoom('live-radio'));
   select('#sound-theme').addEventListener('change', (event) => {
     content.querySelectorAll('[data-sound-group]').forEach((group) => { group.hidden = event.target.value !== 'all' && group.dataset.soundGroup !== event.target.value; });
     select('.mixer-list').scrollTop = 0;
@@ -988,6 +1083,7 @@ function openRoom(room) {
   dialog.classList.toggle('mixer-dialog', room === 'mixer');
   dialog.classList.toggle('resident-dialog', room === 'resident');
   if (room === 'radio') radioRoom();
+  if (room === 'live-radio') liveRadioRoom();
   if (room === 'mixer') mixerRoom();
   if (room === 'resident') residentRoom(litResident);
   if (room === 'notes') {
@@ -1009,7 +1105,7 @@ function openRoom(room) {
     updateTimer();
   }
   if (room === 'help') {
-    content.innerHTML = `<span class="room-eyebrow">Добро пожаловать в квартал</span><h2 id="room-title">Здесь можно выдохнуть.</h2><p>Нажми на светящуюся метку в городе. В кафе — три музыкальные волны. В окне с карандашом — место для мыслей. Под часами — 25 минут тишины для одного дела.</p><p>Ползунки внизу меняют дождь и музыку. «Побыть здесь» убирает заголовок и включает звук.</p><div class="help-keys"><span><kbd>M</kbd>звук</span><span><kbd>F</kbd>весь экран</span><span><kbd>Esc</kbd>назад</span></div>`;
+    content.innerHTML = `<span class="room-eyebrow">Добро пожаловать в квартал</span><h2 id="room-title">Здесь можно выдохнуть.</h2><p>Нажми на светящуюся метку в городе. В кафе — три звуковые сцены. Под меткой «Радио» — пять музыкальных эфиров. В окне с карандашом — место для мыслей. Под часами — 25 минут тишины для одного дела.</p><p>Ползунки внизу меняют дождь и музыку. «Побыть здесь» убирает заголовок и включает звук.</p><div class="help-keys"><span><kbd>M</kbd>звук</span><span><kbd>F</kbd>весь экран</span><span><kbd>Esc</kbd>назад</span></div>`;
   }
   if (!dialog.open) {
     dialog.showModal();
@@ -1030,7 +1126,7 @@ residentButtons.forEach((button, index) => {
   });
 });
 select('#meet-resident').addEventListener('click', () => openRoom('resident'));
-select('#station').addEventListener('click', () => openRoom(layers.some((layer) => layer.level > 0) ? 'mixer' : 'radio'));
+select('#station').addEventListener('click', () => openRoom(layers.some((layer) => layer.level > 0) ? 'mixer' : stations[stationIndex].stream ? 'live-radio' : 'radio'));
 select('#mixer').addEventListener('click', () => openRoom('mixer'));
 syncMixer();
 select('#help').addEventListener('click', () => openRoom('help'));
@@ -1072,5 +1168,5 @@ window.visualViewport?.addEventListener('resize', updateVisualViewport, { passiv
 window.visualViewport?.addEventListener('scroll', updateVisualViewport, { passive: true });
 window.addEventListener('resize', () => { updateVisualViewport(); reserveResidentSpace(); }, { passive: true });
 document.fonts?.ready.then(() => { residentSizeKey = ''; reserveResidentSpace(); });
-window.addEventListener('pagehide', () => { clearInterval(melodyInterval); if (activeTrack) activeTrack.element.pause(); layers.forEach((layer) => layer.track?.element.pause()); if (audio) audio.suspend(); });
-window.addEventListener('pageshow', (event) => { if (event.persisted && audio) { if (playing) { audio.resume().catch(() => {}); if (musicLevel > 0) activeTrack?.element.play().catch(() => toast('Нажми на воспроизведение, чтобы вернуть звук.')); layers.forEach((layer) => startLayer(layer)); } melodyInterval = setInterval(() => { if (playing) playNote(); }, 3200); } });
+window.addEventListener('pagehide', () => { clearInterval(melodyInterval); pauseStation(); layers.forEach((layer) => layer.track?.element.pause()); if (audio) audio.suspend(); });
+window.addEventListener('pageshow', (event) => { if (event.persisted && audio) { if (playing) { audio.resume().catch(() => {}); if (musicLevel > 0) switchStation(stationIndex).catch(() => toast('Нажми на воспроизведение, чтобы вернуть звук.')); layers.forEach((layer) => startLayer(layer)); } melodyInterval = setInterval(() => { if (playing) playNote(); }, 3200); } });

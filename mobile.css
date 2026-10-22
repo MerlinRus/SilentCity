@@ -446,3 +446,6 @@ button:active { filter: brightness(1.15); }
     }
   }
 }
+.live-radio-status { min-height: 3.6em; }
+.live-radio-footnote { max-width: 58ch; }
+.room-eyebrow .ui-icon { vertical-align: middle; margin-left: 6px; }
