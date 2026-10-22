@@ -15,7 +15,7 @@ without having to get anything done.
 
 [![After Rain: a nighttime city with warm windows, a café and an audio player](docs/images/city-desktop.jpg)](https://city.maark.ru/)
 
-> Not another to-do list. Somewhere to put it down for a while.
+> Nothing to finish. Nowhere to rush. Just stay a while.
 
 ## Make this evening your own
 
@@ -48,6 +48,7 @@ and a paper boat in a puddle. You don't need to find everything at once.
 
 Actual screenshots, not mockups. **The app interface is currently in Russian.**
 This English page is a guide to the project, not an English UI.
+The neighbours and their notes are fictional stories, not messages from other users.
 
 ## Your first visit
 
