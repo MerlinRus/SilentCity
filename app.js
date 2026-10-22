@@ -5,6 +5,7 @@ const content = select('#room-content');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const iconPaths = {
   external: 'M7 17 17 7M7 7h10v10',
+  notes: 'M8 4h11v14M5 7h11v14H5ZM8 11h5m-5 4h5',
   music: 'M9 18V5l11-2v13M9 8l11-2M9 18a3 2 0 1 1-6 0 3 2 0 1 1 6 0m11-2a3 2 0 1 1-6 0 3 2 0 1 1 6 0',
   pencil: 'm4 16 11-11 4 4L8 20H4Zm9-9 4 4',
   clock: 'M21 12a9 9 0 1 1-18 0 9 9 0 1 1 18 0M12 7v5l3 2'
@@ -658,8 +659,13 @@ function residentRoom(index) {
       <path d="${resident.object}" stroke="#d7bf95" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" transform="translate(20 0)"/>
       <defs><radialGradient id="resident-glow"><stop stop-color="#e5c28c" stop-opacity=".25"/><stop offset="1" stop-color="#e5c28c" stop-opacity="0"/></radialGradient></defs>
     </svg>
-    <blockquote class="resident-note">${note.text}</blockquote><p class="resident-signature"><strong>${resident.name}</strong><span>${resident.place}</span></p>
-    <div class="resident-actions"><button class="dialog-action" id="resident-next">Другое окно ${svgIcon('external')}</button><button class="mix-clear" id="resident-return">Вернуться в город</button></div>`;
+    <blockquote class="resident-note" aria-live="polite" aria-atomic="true">${note.text}</blockquote><p class="resident-signature"><strong>${resident.name}</strong><span>${resident.place}</span></p>
+    <div class="resident-actions"><button class="dialog-action" id="resident-more">Ещё записка ${svgIcon('notes')}</button><button class="dialog-action secondary" id="resident-next">Другое окно ${svgIcon('external')}</button><button class="mix-clear" id="resident-return">Вернуться в город</button></div>`;
+  select('#resident-more').addEventListener('click', () => {
+    const nextNote = chooseResidentNote(index);
+    select('#room-title').textContent = nextNote.title;
+    select('.resident-note').textContent = nextNote.text;
+  });
   select('#resident-next').addEventListener('click', () => {
     residentRoom((litResident + 1) % residents.length);
     select('#resident-next').focus({ preventScroll: true });

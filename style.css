@@ -21,8 +21,9 @@ dialog::backdrop{background:#071418b8;backdrop-filter:none}
 .resident-signature{display:flex;flex-direction:column;gap:5px;margin:24px 0}
 .resident-signature strong{color:var(--warm);font-size:13px;font-weight:500}
 .resident-signature span{font-size:11px;color:#9eb2a6}
-.resident-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.resident-actions .dialog-action{display:inline-flex;align-items:center;gap:8px;margin:0;min-height:44px}
+.resident-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:center;gap:8px}
+.resident-actions .dialog-action{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin:0;min-height:44px;padding:12px 10px;white-space:nowrap}
+.resident-actions .mix-clear{grid-column:1 / -1;justify-self:center;min-height:44px}
 .resident-actions .ui-icon{width:15px;height:15px}
 @media(hover:hover) and (pointer:fine){.resident-window:hover .resident-light{opacity:1}.resident-window:hover .resident-letter{opacity:1}.city-caption button:hover{color:var(--warm)}}
 @media(max-width:760px){.resident-note{font-size:16px;line-height:1.8}.resident-illustration{height:100px;margin-bottom:12px}.resident-actions{gap:8px}.resident-actions .mix-clear{font-size:11px}.resident-actions .dialog-action{font-size:12px;padding:12px}}
