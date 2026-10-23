@@ -1,4 +1,6 @@
 .city-actor { opacity: 0; }
+.car-headlights { opacity: 0; }
+.world:is([data-phase="night"], [data-phase="dawn"], [data-phase="dusk"]) .car-headlights { opacity: var(--night-light, 1); }
 .world[data-bright="true"] #city-cyclist .cycle-frame { stroke: #315448; }
 .stride-leg, .stride-arm, .cycle-thigh, .cycle-shin, .cycle-crank, .cycle-spokes { transform-origin: 0 0; transform-box: view-box; }
 .cycle-thigh { transform: rotate(-65.47deg); }
