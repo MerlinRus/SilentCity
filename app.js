@@ -250,7 +250,7 @@ city.push(`<g class="city-life" aria-hidden="true" pointer-events="none">
   <g id="city-walker" class="city-actor"><ellipse cy="1" rx="8" ry="3" fill="#102b2c" opacity=".3"/><g class="walker-person"><g transform="translate(-3 -10)"><path class="stride-leg" d="M0 0 1 5-2 10" fill="none" stroke="#314b45" stroke-width="3" stroke-linecap="round"/></g><g transform="translate(2 -10)"><path class="stride-leg stride-back" d="M0 0 1 5 3 10" fill="none" stroke="#314b45" stroke-width="3" stroke-linecap="round"/></g><path d="M-5-24h9l2 15H-6Z" fill="#bc9b72"/><circle cy="-29" r="4" fill="#d8bea1"/><g transform="translate(-5 -22)"><path class="stride-arm" d="M0 0-5 11" stroke="#bc9b72" stroke-width="3" stroke-linecap="round"/></g><path d="m4-22 5 8" stroke="#bc9b72" stroke-width="3" stroke-linecap="round"/><g class="walker-umbrella"><path d="M-18-35Q0-57 18-35q-9-5-18 0-9-5-18 0Z" fill="#986e59" stroke="#4f5646"/><path d="M0-35v21" stroke="#d6c5a0" stroke-width="1.5"/></g></g></g>
   <g id="city-cyclist" class="city-actor"><ellipse cx="16" cy="8" rx="30" ry="4" fill="#102b2c" opacity=".3"/><g transform="rotate(11.3)">
     <g transform="translate(13 -23)" fill="none" stroke="#8e846d" stroke-width="3" stroke-linecap="round"><g class="cycle-thigh cycle-rear"><path d="M0 0v12"/><g transform="translate(0 12)"><g class="cycle-shin cycle-rear"><path d="M0 0v12"/></g></g></g></g>
-    <g class="cycle-frame" fill="none" stroke="#a3b297" stroke-width="2"><circle r="10"/><circle cx="34" r="10"/><path d="m0 0 10-17L16 0H0m16 0 10-17 8 17M10-17h16l-2-5h-5"/></g>
+    <g class="cycle-frame" fill="none" stroke="#a3b297" stroke-width="2"><circle r="10"/><circle cx="34" r="10"/><g class="cycle-spokes" stroke-width="1" opacity=".7"><path d="M0-9V9M-7.8-4.5l15.6 9M-7.8 4.5l15.6-9"/></g><g transform="translate(34 0)"><g class="cycle-spokes" stroke-width="1" opacity=".7"><path d="M0-9V9M-7.8-4.5l15.6 9M-7.8 4.5l15.6-9"/></g></g><path d="m0 0 10-17L16 0H0m16 0 10-17 8 17M10-17h16l-2-5h-5"/></g>
     <g transform="translate(16 -5)"><g class="cycle-crank" fill="none" stroke="#c6ad88" stroke-width="1.5"><path d="M0-4v8M-3-4h6M-3 4h6"/></g></g>
     <g transform="translate(13 -23)" fill="none" stroke="#c6ad88" stroke-width="3" stroke-linecap="round"><g class="cycle-thigh"><path d="M0 0v12"/><g transform="translate(0 12)"><g class="cycle-shin"><path d="M0 0v12"/></g></g></g></g>
     <path d="m18-30-6 6 1 1" fill="none" stroke="#798f80" stroke-width="6" stroke-linecap="round"/><circle cx="17" cy="-35" r="4" fill="#dcc2a0"/><path d="m18-31 7 9h6" fill="none" stroke="#798f80" stroke-width="3" stroke-linecap="round"/></g></g>
@@ -1178,10 +1178,28 @@ function commitResidentNote(change) {
 function finishResidentNoteChange(commit = true) {
   const change = residentNoteChange;
   if (!change) return;
+  if (change.frame != null) cancelAnimationFrame(change.frame);
+  change.animations?.forEach((animation) => { animation.onfinish = null; animation.cancel(); });
+  change.elements?.forEach((element) => { element.style.visibility = ''; });
   if (commit) commitResidentNote(change);
   residentNoteChange = null;
-  content.classList.remove('changing-note', 'changing-resident');
   change.button.removeAttribute('aria-busy');
+}
+function animateResidentNote(change, entering) {
+  change.animations = change.elements.map((element) => element.animate([{ opacity: entering ? 0 : 1 }, { opacity: entering ? 1 : 0 }], { duration: 140, easing: 'cubic-bezier(.37,0,.63,1)', fill: 'both' }));
+  change.animations[1].onfinish = () => {
+    if (residentNoteChange !== change) return;
+    if (entering) { finishResidentNoteChange(false); return; }
+    change.elements.forEach((element) => { element.style.visibility = 'hidden'; });
+    change.animations.forEach((animation) => { animation.onfinish = null; animation.cancel(); });
+    commitResidentNote(change);
+    change.frame = requestAnimationFrame(() => {
+      change.frame = null;
+      if (residentNoteChange !== change) return;
+      animateResidentNote(change, true);
+      change.elements.forEach((element) => { element.style.visibility = ''; });
+    });
+  };
 }
 function changeResidentNote(index, nextResident = false) {
   if (residentNoteChange) return;
@@ -1191,8 +1209,9 @@ function changeResidentNote(index, nextResident = false) {
     return;
   }
   residentNoteChange.button.setAttribute('aria-busy', 'true');
-  if (nextResident) content.classList.add('changing-resident');
-  content.classList.add('changing-note');
+  residentNoteChange.elements = [residentNoteChange.title, residentNoteChange.body];
+  if (nextResident) residentNoteChange.elements.push(select('.resident-illustration'), select('.resident-signature'));
+  animateResidentNote(residentNoteChange, false);
 }
 function reserveResidentSpace(retry = true) {
   if (!dialog.open || !dialog.classList.contains('resident-dialog') || document.hidden) return;
@@ -1255,12 +1274,6 @@ function residentRoom(index) {
     <blockquote class="resident-note" aria-live="polite" aria-atomic="true">${note.text}</blockquote><p class="resident-signature"><strong>${resident.name}</strong><span>${resident.place}</span></p>
     <div class="resident-actions"><button class="dialog-action" id="resident-more">Ещё записка ${svgIcon('notes')}</button><button class="dialog-action secondary" id="resident-next">Другое окно ${svgIcon('external')}</button><button class="mix-clear" id="resident-return">Вернуться в город</button></div>`;
   select('#resident-more').addEventListener('click', () => changeResidentNote(litResident));
-  select('.resident-note').addEventListener('animationiteration', (event) => {
-    if (event.animationName === 'resident-note-swap' && residentNoteChange?.body === event.currentTarget) commitResidentNote(residentNoteChange);
-  });
-  select('.resident-note').addEventListener('animationend', (event) => {
-    if (event.animationName === 'resident-note-swap' && residentNoteChange?.body === event.currentTarget) finishResidentNoteChange(false);
-  });
   select('#resident-next').addEventListener('click', () => changeResidentNote((litResident + 1) % residents.length, true));
   select('#resident-return').addEventListener('click', () => dialog.close());
   if (dialog.open) { reserveResidentSpace(); revealContent(content); }

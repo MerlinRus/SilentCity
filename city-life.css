@@ -1,6 +1,6 @@
 .city-actor { opacity: 0; }
 .world[data-bright="true"] #city-cyclist .cycle-frame { stroke: #315448; }
-.stride-leg, .stride-arm, .cycle-thigh, .cycle-shin, .cycle-crank { transform-origin: 0 0; transform-box: view-box; }
+.stride-leg, .stride-arm, .cycle-thigh, .cycle-shin, .cycle-crank, .cycle-spokes { transform-origin: 0 0; transform-box: view-box; }
 .cycle-thigh { transform: rotate(-65.47deg); }
 .cycle-shin { transform: rotate(106.75deg); }
 .cycle-thigh.cycle-rear { transform: rotate(-30.07deg); }
@@ -43,6 +43,7 @@
   #city-neighbour.is-passing .stride-leg { animation: city-step .8s ease-in-out 6, city-step .8s ease-in-out 7 10.4s; }
   #city-neighbour.is-passing .stride-back { animation-direction: reverse, reverse; }
   #city-cyclist.is-passing .cycle-crank { animation: city-pedal 1.1s linear infinite; }
+  #city-cyclist.is-passing .cycle-spokes { animation: cycle-roll 13s linear both; }
   #city-cyclist.is-passing .cycle-thigh { animation: cycle-thigh 1.1s linear infinite; }
   #city-cyclist.is-passing .cycle-shin { animation: cycle-shin 1.1s linear infinite; }
   #city-cyclist.is-passing .cycle-rear { animation-delay: -.55s; }
@@ -55,6 +56,10 @@
 @keyframes city-pedal {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+@keyframes cycle-roll {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(2454.08deg); }
 }
 @keyframes cycle-thigh {
   0% { transform: rotate(-65.47deg); }
