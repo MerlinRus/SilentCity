@@ -1096,7 +1096,7 @@ function openRoom(room) {
   if (room === 'mixer') mixerRoom();
   if (room === 'resident') residentRoom(litResident);
   if (room === 'notes') {
-    content.innerHTML = `<span class="room-eyebrow">Окно на четвёртом</span><h2 id="room-title">Оставь это здесь.</h2><p>Мысль, которая не даёт уснуть. Идею на завтра. Или пару слов самому себе.</p><label for="notes" class="saved-label">Твои заметки</label><textarea id="notes" placeholder="О чём ты сейчас думаешь?"></textarea><span class="saved-label" id="save-status" role="status">Только в этом браузере. Только для тебя.</span>`;
+    content.innerHTML = `<span class="room-eyebrow">Окно на четвёртом</span><h2 id="room-title">Оставь это здесь</h2><p>Мысль, которая не даёт уснуть. Идею на завтра. Или пару слов самому себе.</p><label for="notes" class="saved-label">Твои заметки</label><textarea id="notes" placeholder="О чём ты сейчас думаешь?"></textarea><span class="saved-label" id="save-status" role="status">Только в этом браузере. Только для тебя.</span>`;
     try { select('#notes').value = localStorage.getItem('after-rain-notes') || ''; } catch { select('#save-status').textContent = 'Хранилище недоступно. Скопируй заметку перед закрытием.'; }
     select('#notes').addEventListener('input', (event) => {
       try { localStorage.setItem('after-rain-notes', event.target.value); select('#save-status').textContent = 'Сохранено. Можно отпустить.'; }
@@ -1104,7 +1104,7 @@ function openRoom(room) {
     });
   }
   if (room === 'focus') {
-    content.innerHTML = `<span class="room-eyebrow">Тихая комната</span><h2 id="room-title">Одно дело. Без суеты.</h2><p>Двадцать пять минут для того, что важно сейчас. Остальное подождёт за дверью.</p><div class="timer-display" id="timer-display" role="timer" aria-label="Оставшееся время">25:00</div><button class="dialog-action" id="timer-toggle">Начать</button><button class="dialog-action secondary" id="timer-reset">Сначала</button><p>Можешь закрыть окно — время продолжит идти.</p>`;
+    content.innerHTML = `<span class="room-eyebrow">Тихая комната</span><h2 id="room-title">Одно дело. Без суеты</h2><p>Двадцать пять минут для того, что важно сейчас. Остальное подождёт за дверью.</p><div class="timer-display" id="timer-display" role="timer" aria-label="Оставшееся время">25:00</div><button class="dialog-action" id="timer-toggle">Начать</button><button class="dialog-action secondary" id="timer-reset">Сначала</button><p>Можешь закрыть окно — время продолжит идти.</p>`;
     select('#timer-toggle').addEventListener('click', () => {
       if (timerRunning) { updateTimer(); timerRunning = false; }
       else { if (!timerRemaining) timerRemaining = 1500; timerDeadline = Date.now() + timerRemaining * 1000; timerRunning = true; }
@@ -1114,7 +1114,7 @@ function openRoom(room) {
     updateTimer();
   }
   if (room === 'help') {
-    content.innerHTML = `<span class="room-eyebrow">Добро пожаловать в квартал</span><h2 id="room-title">Здесь можно выдохнуть.</h2><p>Нажми на светящуюся метку в городе. В кафе — три звуковые сцены. Под меткой «Радио» — пять музыкальных эфиров. В окне с карандашом — место для мыслей. Под часами — 25 минут тишины для одного дела.</p><p>Ползунки внизу меняют дождь и музыку. «Побыть здесь» убирает заголовок и включает звук.</p><div class="help-keys"><span><kbd>M</kbd>звук</span><span><kbd>F</kbd>весь экран</span><span><kbd>Esc</kbd>назад</span></div>`;
+    content.innerHTML = `<span class="room-eyebrow">Добро пожаловать в квартал</span><h2 id="room-title">Здесь можно выдохнуть</h2><p>Нажми на светящуюся метку в городе. В кафе — три звуковые сцены. Под меткой «Радио» — пять музыкальных эфиров. В окне с карандашом — место для мыслей. Под часами — 25 минут тишины для одного дела.</p><p>Ползунки внизу меняют дождь и музыку. «Побыть здесь» убирает заголовок и включает звук.</p><div class="help-keys"><span><kbd>M</kbd>звук</span><span><kbd>F</kbd>весь экран</span><span><kbd>Esc</kbd>назад</span></div>`;
   }
   if (!dialog.open) {
     dialog.showModal();
