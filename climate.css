@@ -6,8 +6,21 @@
 .world[data-phase="night"] .weather-moon { opacity: var(--sun-opacity, 1); }
 .world[data-phase="night"] .weather-stars { opacity: var(--stars-opacity, .5); }
 .world[data-bright="true"] .sky-glow { opacity: .25; }
-.world[data-bright="true"] .vignette { background: linear-gradient(90deg, #cdded3e6, #cdded380 28%, #cdded300 64%), linear-gradient(0deg, #cdded3, #cdded300 38%); }
+.world[data-bright="true"] .scene { opacity: 1; }
+.world[data-bright="true"] .vignette { background: linear-gradient(90deg, #cdded3ed, #cdded36b 23%, #cdded300 48%), linear-gradient(0deg, #cdded37a, #cdded300 23%); }
+.world[data-bright="true"] .bicycle-frame { stroke: #264b42; stroke-width: 2.2; opacity: 1; }
+.world[data-bright="true"] .umbrella-canopy { fill: #9c6747; stroke: #514d39; stroke-width: 1.2; stroke-linejoin: round; }
+.world[data-bright="true"] .umbrella-handle { stroke: #36574d; stroke-width: 2; }
+.world[data-bright="true"] .boat-water { fill: #436e68; opacity: .22; }
+.world[data-bright="true"] .boat-sail { fill: #f0e7cc; stroke: #426057; stroke-width: 1.2; opacity: 1; }
+.world[data-bright="true"] .boat-hull { fill: #d7d2b6; stroke: #426057; stroke-width: 1.3; stroke-linejoin: round; }
+.world[data-bright="true"] .boat-folds { stroke: #41655d; stroke-width: 1.3; }
+.world[data-bright="true"] .tram-body { fill: #526e60; stroke: #314e44; stroke-width: 1; }
+.world[data-bright="true"] .tram-front { fill: #324c44; }
+.world[data-bright="true"] .tram-roof { fill: #a3a383; }
+.world[data-bright="true"] .car-body { fill: #486b60; stroke: #2f5148; stroke-width: 1; }
 .world[data-weather="fog"] .scene { opacity: .62; }
+.world[data-bright="true"][data-weather="fog"] .scene { opacity: .82; }
 .world[data-weather="snow"] .roof-edge { stroke: #e0e8da; stroke-opacity: .7; stroke-width: 5; }
 .window-lamp, .lamp-glow { opacity: var(--night-light, 1); }
 .ground-reflection { opacity: var(--ground-wet, .2); }
@@ -58,4 +71,16 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .world.lightning .weather-lightning { animation: none; opacity: 0; }
+}
+
+@media (min-width: 1101px) and (min-aspect-ratio: 2/1) {
+  .world:not(.exploring):not(.city-transitioning) .scene { width: 184dvh; height: 115dvh; top: -10dvh; right: calc((100vw - 200dvh) / 2); }
+  .weather-sky { width: 160dvh; height: 100dvh; left: auto; right: calc((100vw - 200dvh) / 2); }
+  .intro { left: 6%; width: 34%; top: 24%; }
+  .intro h1 { font-size: clamp(3.25rem, 6.8dvh, 6rem); margin-bottom: 28px; }
+  .intro p { margin-bottom: 28px; }
+  .city-caption { left: 6%; }
+}
+@media (min-width: 1101px) and (min-aspect-ratio: 2/1) and (max-height: 950px) {
+  .world:not(.exploring):not(.city-transitioning) .scene { width: 160dvh; height: 100dvh; top: -8dvh; }
 }

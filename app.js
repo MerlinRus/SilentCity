@@ -176,8 +176,8 @@ city.push(`<path d="m474 544 606-139 574 216M612 701l490 145 496-229" fill="none
 city.push(`<path d="m610 604 400 105 465-187" fill="none" stroke="#c0c9b1" stroke-opacity=".14" stroke-width="2" stroke-dasharray="25 25"/>`);
 city.push(`<g id="city-tram" aria-hidden="true" pointer-events="none">
   <ellipse cx="27" cy="-9" rx="55" ry="12" transform="rotate(-27 27 -9)" fill="#091d24" opacity=".45"/>
-  <path d="M0 0 70-35V-62L0-27Z" fill="#78857a"/><path d="M0 0-18-9v-27L0-27Z" fill="#465e58"/>
-  <path d="M0-27 70-62 52-71-18-36Z" fill="#8b9584"/>
+  <path class="tram-body" d="M0 0 70-35V-62L0-27Z" fill="#78857a"/><path class="tram-front" d="M0 0-18-9v-27L0-27Z" fill="#465e58"/>
+  <path class="tram-roof" d="M0-27 70-62 52-71-18-36Z" fill="#8b9584"/>
   <path d="m7-27 12-6v15L7-12Zm17-8 12-6v15l-12 6Zm17-8 12-6v15l-12 6Zm17-8 6-3v15l-6 3Z" fill="#d5bd86" opacity=".8"/>
   <path d="m-14-29 10 5v12l-10-5Z" fill="#b9b485" opacity=".65"/><path d="m0-6 70-35" stroke="#b4b098" stroke-width="2"/>
   <path d="m12-2 8-4v4l-8 4Zm39-20 8-4v4l-8 4Z" fill="#142a2d"/>
@@ -224,14 +224,14 @@ function lamp(x, y, height = 100) {
   city.push(`<g class="street-lamp"><ellipse class="lamp-glow" cx="${x}" cy="${y + 2}" rx="49" ry="16" fill="url(#lamp)"/><path d="M${x} ${y}v-${height}q0-10 13-7l10 2" fill="none" stroke="#6c7c6b" stroke-width="2.5"/><ellipse class="lamp-glow" cx="${x + 21}" cy="${y - height - 3}" rx="8" ry="3" fill="#ecd7a3"/><ellipse class="lamp-glow" cx="${x + 21}" cy="${y - height + 12}" rx="53" ry="60" fill="url(#lamp)"/><path class="ground-reflection lamp-glow" d="m${x + 18} ${y + 8}-28 63 10 2 29-64" fill="url(#reflection)"/></g>`);
 }
 lamp(799, 699, 105); lamp(1210, 777, 105); lamp(1445, 651, 90); lamp(654, 630, 85);
-city.push(`<g transform="translate(1330 735) rotate(-28)"><ellipse rx="43" ry="21" fill="#071b2266"/><rect x="-34" y="-20" width="68" height="30" rx="10" fill="#60736c"/><rect x="-16" y="-19" width="31" height="28" rx="7" fill="#233b3a"/><path d="M-31-10h10m-10 11h10M21-10h8M21 1h8" stroke="#d6caa0" stroke-width="3"/></g>`);
+city.push(`<g class="city-car" transform="translate(1330 735) rotate(-28)"><ellipse rx="43" ry="21" fill="#071b2266"/><rect class="car-body" x="-34" y="-20" width="68" height="30" rx="10" fill="#60736c"/><rect x="-16" y="-19" width="31" height="28" rx="7" fill="#233b3a"/><path d="M-31-10h10m-10 11h10M21-10h8M21 1h8" stroke="#d6caa0" stroke-width="3"/></g>`);
 city.push(`<g class="courtyard-details" aria-hidden="true" pointer-events="none">
-  <g transform="translate(833 685) rotate(11.3) scale(.8)"><ellipse cx="16" cy="11" rx="31" ry="5" fill="#0a2026" opacity=".6"/>
-    <g fill="none" stroke="#8b9c86" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" opacity=".75"><circle r="10"/><circle cx="32" r="10"/><path d="m0 0 10-17L14 0H0m14 0 11-17 7 17M10-17h15l-2-5h-5M10-17 7-23H3"/></g>
+  <g class="city-bicycle" transform="translate(833 685) rotate(11.3) scale(.8)"><ellipse cx="16" cy="11" rx="31" ry="5" fill="#0a2026" opacity=".6"/>
+    <g class="bicycle-frame" fill="none" stroke="#8b9c86" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" opacity=".75"><circle r="10"/><circle cx="32" r="10"/><path d="m0 0 10-17L14 0H0m14 0 11-17 7 17M10-17h15l-2-5h-5M10-17 7-23H3"/></g>
   </g>
-  <g transform="translate(1138 712) rotate(-25)"><path d="M-17-10Q0-35 17-10 8-15 0-10q-8-5-17 0Z" fill="#7f8c75"/><path d="M0-10v28q0 7 6 5M0-25v-4" fill="none" stroke="#c0ad83" stroke-width="1.5" stroke-linecap="round"/></g>
-  <g transform="translate(790 774) rotate(11.3)"><ellipse rx="36" ry="8" fill="#8ba69a" opacity=".13"/>
-    <path d="m-12-4 12-13L12-4Z" fill="#c7c6ab" opacity=".75"/><path d="M-18-3h36L10 5H-8Z" fill="#a8b3a1"/><path d="M0-17V-4M-18-3 0 2l18-5m-44 14h16m18 2h13" fill="none" stroke="#6f8982" stroke-width="1"/>
+  <g class="city-umbrella" transform="translate(1138 712) rotate(-25)"><path class="umbrella-canopy" d="M-17-10Q0-35 17-10 8-15 0-10q-8-5-17 0Z" fill="#7f8c75"/><path class="umbrella-handle" d="M0-10v28q0 7 6 5M0-25v-4" fill="none" stroke="#c0ad83" stroke-width="1.5" stroke-linecap="round"/></g>
+  <g class="city-boat" transform="translate(790 774) rotate(11.3)"><ellipse class="boat-water" rx="36" ry="8" fill="#8ba69a" opacity=".13"/>
+    <path class="boat-sail" d="m-12-4 12-13L12-4Z" fill="#c7c6ab" opacity=".75"/><path class="boat-hull" d="M-18-3h36L10 5H-8Z" fill="#a8b3a1"/><path class="boat-folds" d="M0-17V-4M-18-3 0 2l18-5m-44 14h16m18 2h13" fill="none" stroke="#6f8982" stroke-width="1"/>
   </g>
 </g>`);
 for (let index = 0; index < 95; index++) {
