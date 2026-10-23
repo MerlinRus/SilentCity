@@ -127,14 +127,15 @@ function building({ x, y, width, height, depth, rows, columns, color = '#263b3b'
   city.push(polygon([[x, y], [x + width, y + slope], [x + width, y + slope + height], [x, y + height]], color));
   city.push(polygon([[x + width, y + slope], [x + width + depth, y + slope - recess], [x + width + depth, y + slope - recess + height], [x + width, y + slope + height]], side));
   city.push(`<path class="roof-edge" d="M${x},${y + 5} l${width},${slope} l${depth},${-recess}" stroke="#98a99a" stroke-opacity=".15" fill="none" stroke-width="3"/>`);
+  const rowSpacing = (height - 50) / rows;
+  const windowHeight = Math.min(29, rowSpacing * .58);
   for (let row = 0; row < rows; row++) {
-    const windowY = y + 30 + row * ((height - 50) / rows);
-    if (detail) city.push(`<path d="M${x} ${windowY + 36}l${width} ${slope}" stroke="#101f23" stroke-opacity=".28" fill="none"/>`);
+    const windowY = y + 30 + row * rowSpacing;
+    if (detail) city.push(`<path d="M${x} ${windowY + (windowHeight + rowSpacing) / 2}l${width} ${slope}" stroke="#101f23" stroke-opacity=".28" fill="none"/>`);
     for (let column = 0; column < columns; column++) {
       const windowX = x + 17 + column * ((width - 25) / columns);
       const offset = (windowX - x) * .2;
       const windowWidth = (width - 25) / columns * .49;
-      const windowHeight = Math.min(29, (height - 50) / rows * .58);
       const isLit = random() < lit;
       const tint = random() > .65 ? '#d4bd8b' : '#b79865';
       const shape = [[windowX, windowY + offset], [windowX + windowWidth, windowY + offset + windowWidth * .2], [windowX + windowWidth, windowY + offset + windowWidth * .2 + windowHeight], [windowX, windowY + offset + windowHeight]];
@@ -275,7 +276,7 @@ const lastResidentIndex = residents.findIndex((resident) => resident.notes.some(
 let litResident = lastResidentIndex < 0 ? Math.floor(Math.random() * residents.length) : (lastResidentIndex + 1) % residents.length;
 const cityTram = select('#city-tram');
 const cityActors = [cityTram, ...document.querySelectorAll('.city-actor')];
-let lastCityActor = -1;
+let lastCityActor = 0;
 let cityLifeTimeout;
 let cityLifeTick = 0;
 let pageAway = false;
@@ -291,8 +292,8 @@ function advanceCityLife() {
   world.classList.toggle('cat-turned', cityLifeTick % 4 >= 2);
   world.classList.toggle('cat-away', cityLifeTick % 8 === 5 || cityLifeTick % 8 === 6);
   world.classList.toggle('entrance-lit', cityLifeTick % 6 === 1);
-  if (cityLifeTick % 2 === 1 && !cityActors.some((actor) => actor.classList.contains('is-passing') || actor.classList.contains('tram-passing'))) {
-    const next = (lastCityActor + 1 + Math.floor(Math.random() * (cityActors.length - 1))) % cityActors.length;
+  if (!cityActors.some((actor) => actor.classList.contains('is-passing') || actor.classList.contains('tram-passing'))) {
+    const next = (lastCityActor + 1) % cityActors.length;
     lastCityActor = next;
     cityActors[next].classList.add(next === 0 ? 'tram-passing' : 'is-passing');
   }
@@ -305,7 +306,7 @@ cityActors.forEach((actor) => actor.addEventListener('animationend', (event) => 
 function scheduleCityLife() {
   clearTimeout(cityLifeTimeout);
   if (scenePaused() || reducedMotion.matches) return;
-  cityLifeTimeout = setTimeout(() => { advanceCityLife(); scheduleCityLife(); }, 18000);
+  cityLifeTimeout = setTimeout(() => { advanceCityLife(); scheduleCityLife(); }, cityLifeTick ? 24000 : 1500);
 }
 
 const canvas = select('#rain');

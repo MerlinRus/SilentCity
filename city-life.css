@@ -1,4 +1,5 @@
 .city-actor { opacity: 0; }
+.world[data-bright="true"] #city-cyclist g[fill="none"] { stroke: #315448; }
 .walker-umbrella { display: none; }
 .world[data-weather="rain"] .walker-umbrella,
 .world[data-weather="storm"] .walker-umbrella { display: inline; }
@@ -13,14 +14,14 @@
   100% { opacity: 0; transform: translate(1095px, 772px); }
 }
 @keyframes city-cycle {
-  0% { opacity: 0; transform: translate(580px, 780px); }
+  0% { opacity: 0; transform: translate(690px, 710px); }
   8%, 90% { opacity: 1; }
-  100% { opacity: 0; transform: translate(1080px, 910px); }
+  100% { opacity: 0; transform: translate(1110px, 794px); }
 }
 @keyframes city-drive {
-  0% { opacity: 0; transform: translate(1510px, 886px); }
+  0% { opacity: 0; transform: translate(620px, 710px); }
   8%, 90% { opacity: 1; }
-  100% { opacity: 0; transform: translate(1160px, 985px); }
+  100% { opacity: 0; transform: translate(1060px, 798px); }
 }
 @keyframes city-coffee {
   0% { opacity: 0; transform: translate(1162px, 704px); }
@@ -30,5 +31,8 @@
   100% { opacity: 0; transform: translate(1162px, 704px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .city-life { display: none; }
+  #city-walker { opacity: 1; transform: translate(950px, 743px); }
+  #city-cyclist { opacity: 1; transform: translate(760px, 724px); }
+  #city-driving { opacity: 1; transform: translate(900px, 755px); }
+  #city-neighbour { opacity: 1; transform: translate(1195px, 737px); }
 }
