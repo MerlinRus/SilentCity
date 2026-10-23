@@ -154,7 +154,7 @@ dialog.radio-dialog #room-content { min-height: 100%; }
 @media (min-width: 761px) and (max-height: 800px) {
   .radio-room { padding-top: 12px; padding-bottom: 14px; }
   .radio-room-stage { padding-top: 16px; padding-bottom: 0; }
-  .radio-receiver { width: min(100%, 105dvh); padding: 34px 40px 48px; gap: 18px 5%; }
+  .radio-receiver { width: min(100%, 112dvh); padding: 34px 40px 48px; gap: 18px 5%; }
   .receiver-display { padding: 12px 18px 4px; }
   .radio-dialog #receiver-station { margin-top: 16px; font-size: 36px; }
   .receiver-console { gap: 16px; }
