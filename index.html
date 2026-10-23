@@ -28,17 +28,17 @@
     <canvas id="rain" aria-hidden="true"></canvas>
     <div class="vignette" aria-hidden="true"></div>
     <header class="header">
-      <a class="brand" href="./" aria-label="После дождя, главная"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M22 5A12 12 0 1 0 27 25 14 14 0 0 1 22 5Z"/><path class="drop" d="m26 4-2 4m5 2-2 4"/></svg><span>после дождя<span class="brand-dot">.</span></span></a>
+      <a class="brand" href="./" aria-label="После дождя, главная"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M22 5A12 12 0 1 0 27 25 14 14 0 0 1 22 5Z"/><path class="drop" d="m26 4-2 4m5 2-2 4"/></svg><span>после дождя</span></a>
       <div class="header-right"><button class="weather-button" id="weather-open" aria-label="Погода и время Москвы"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="weather-icon" d="M7 17a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 9H7Z"/></svg><span id="weather-label">Москва · погода</span></button><time id="clock" title="Московское время, МСК">--:--</time><button class="icon-button help-button" id="help" aria-label="Об этом месте"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 8a2.5 2.5 0 0 1 5 .3c0 2-2.5 2.2-2.5 4.2M12 17h.01"/></svg></button></div>
     </header>
     <section class="intro" id="intro">
       <div class="place-label"><span></span>Твоё маленькое убежище</div>
-      <h1><span id="city-greeting">Город живёт.</span><br>Ты — выдыхаешь.</h1>
+      <h1><span id="city-greeting">Город живёт</span><br>Ты — выдыхаешь</h1>
       <p>Здесь не нужно ничего успевать.<br><span id="city-invitation">Послушай город. Найди своё окно.</span><br>Просто побудь.</p>
       <button class="wander" id="wander"><span class="wander-icon"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" stroke="#a3b4ae55"/><path d="m14 26 12-12M15 14h11v11"/></svg></span>Побыть здесь</button>
       <span class="sound-hint">Лучше в наушниках <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 12V9a6 6 0 0 1 12 0v3M4 10H2v6h4v-6Zm12 0h2v6h-4v-6Z"/></svg></span>
     </section>
-    <div class="city-caption"><span class="caption-line"></span><span><span id="resident-teaser">Здесь у каждого своя история.</span><br><button id="meet-resident"><span id="meet-label">Заглянуть в окно</span> <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></button></span></div>
+    <div class="city-caption"><span class="caption-line"></span><span><span id="resident-teaser">Здесь у каждого своя история</span><br><button id="meet-resident"><span id="meet-label">Заглянуть в окно</span> <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></button></span></div>
     <button class="return-button" id="return" hidden><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H4m6-6-6 6 6 6"/></svg>Вернуться к началу</button>
     <button class="explore-button" id="explore-city" aria-controls="scene" aria-expanded="false"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Zm6-3v15m6-12v15"/></svg>Исследовать город</button>
     <button class="explore-exit" id="explore-return" hidden><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4ZM4 10h16M10 10v9"/></svg>Вернуть интерфейс</button>
@@ -50,7 +50,7 @@
       <div class="mix-control music-control"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13M9 8l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/></svg><label for="music-level">Радио</label><input id="music-level" type="range" min="0" max="100" value="45" aria-label="Громкость радио"></div>
       <div class="dock-end"><span id="sound-status">Пусть мир подождёт</span><button class="mixer-button" id="mixer" aria-label="Открыть микшер"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h6m4 0h6M4 17h10m4 0h2M10 4v6m4 4v6"/></svg><span>Свой микс</span></button><button class="icon-button" id="fullscreen" aria-label="На весь экран"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button></div>
     </footer>
-    <div class="bottom-note"><span>Маленькое место. Только для тебя.</span><span>Можно просто ничего не делать.</span></div>
+    <div class="bottom-note"><span>Маленькое место. Только для тебя.</span><span>Можно просто ничего не делать</span></div>
     <div class="toast" id="toast" role="status"></div>
   </main>
   <dialog id="room-dialog" aria-labelledby="room-title"><button class="close-dialog icon-button" id="close-dialog" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><div id="room-content"></div></dialog>
