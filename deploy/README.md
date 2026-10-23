@@ -9,7 +9,7 @@
 ## Обновление
 
 1. Проверить `npm run check` локально.
-2. Создать `/opt/after-rain/site/releases/<release-id>` и загрузить в него `index.html`, `style.css`, `mobile.css`, `climate.css`, `radio-room.css`, `app.js`, `weather.js` и каталог `sounds/` с аудиозаписями и атрибуцией. Сохранить ссылку `weather.json -> ../../weather/current.json`.
+2. Создать `/opt/after-rain/site/releases/<release-id>` и загрузить в него `index.html`, `style.css`, `mobile.css`, `climate.css`, `radio-room.css`, `city-life.css`, `app.js`, `weather.js` и каталог `sounds/` с аудиозаписями и атрибуцией. Сохранить ссылку `weather.json -> ../../weather/current.json`.
 3. Из `/opt/after-rain/site` выполнить `ln -s releases/<release-id> current.next`, затем `mv -Tf current.next current`.
 4. Проверить `/healthz` и основные сценарии в браузере. Для изменения статических файлов перезапуск Caddy не нужен.
 

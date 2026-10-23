@@ -11,27 +11,34 @@ Five genre presets, previous/next station buttons, playback, a volume dial
 and the live connection status share the existing audio engine. Opening the
 room never starts audio or requests a stream. Returning to the city keeps an
 already-playing broadcast and the ambient mix; “Свой микс” opens the mixer.
+Choosing a preset or stepping to another genre stops the previous radio stream
+without stopping ambient layers. Only “Пуск” opens the selected live connection;
+changing either volume control cannot start a stopped radio.
 
-Pointer entry and return use a 650 ms city-camera transition, matching the
-existing exploration motion. Only transform/opacity animate, and city life
-and rain pause while the room is open. Finished or interrupted animations
-are cancelled, the transform origin is restored, and the covered city is
-hidden so no zoomed compositor layer remains. Escape, keyboard use and
-reduced motion skip the camera. Resize, backgrounding and rapid return
-finish or cancel pending transitions safely.
+Pointer entry and return use one 300 ms opacity crossfade on the dialog.
+The complex city SVG is never scaled or transformed for this transition:
+the previous 1.9× camera enlarged its raster area 3.61× and also animated
+multiple HUD surfaces. City life and rain pause while the room is open.
+Finished or interrupted fades are cancelled and the covered city is hidden.
+Escape, keyboard use and reduced motion skip the fade. Resize, backgrounding
+and rapid return finish or cancel pending transitions safely.
+Reopening the radio reuses the receiver DOM if no other room replaced it;
+event handlers and SVG markup are not rebuilt on every visit.
 
 The receiver uses inline SVG and a small scoped stylesheet, without raster
 images, new fonts, libraries, visualizer loops or metadata polling.
 Adjusting volume updates the current gain without reconnecting a healthy
 stream. On narrow screens the speaker is omitted and controls stack; the
 native dialog scrolls vertically when needed and retains keyboard focus.
+The circular SVG dial supports mouse/touch rotation and keyboard arrows,
+Page Up/Down and Home/End. It shares its value with the native range control.
 
 | Genre | Broadcaster / station | HTTPS stream |
 | --- | --- | --- |
 | Rock’n’roll / 1950s–60s oldies | 181.FM Good Time Oldies | `https://listen.181fm.com/181-goodtime_128k.mp3` |
 | Lo-fi / chillhop | FluxFM Chillhop | `https://channels.fluxfm.de/chillhop/externalembedflxhp/stream.mp3` |
 | Electronic | FluxFM ElektroFlux | `https://channels.fluxfm.de/elektro-flux/externalembedflxhp/stream.mp3` |
-| Jazz | FluxFM Xjazz | `https://channels.fluxfm.de/x-jazz/externalembedflxhp/stream.mp3` |
+| Jazz | 181.FM BeBop | `https://listen.181fm.com/181-bebop_128k.mp3` |
 | Blues | 181.FM True Blues | `https://listen.181fm.com/181-blues_128k.mp3` |
 
 Official sources: [181.FM player embeds](https://181.fm/codes),
@@ -46,12 +53,17 @@ The CC0 licences in `sounds/` do not apply to these broadcasts.
   action, using one native HTML audio element and the existing Web Audio mixer.
 - `crossOrigin="anonymous"` is set before the source URL. No provider scripts,
   iframes, metadata polling, audio decoding into RAM, or new dependencies.
-- Selection changes use the existing short gain crossfade. Superseded pending
-  connections are disposed, including on pause, mute and page exit.
+- Selection changes stop the old stream and require “Пуск”. Superseded pending
+  connections are disposed, including on stop, mute and page exit.
 - Pausing or muting releases the live connection after the volume fade;
   resuming reconnects to the current broadcast rather than old buffered music.
 - Failure/ended events offer a manual retry. Availability, adverts and jingles
   depend on the broadcaster. An uninterrupted internet connection is required.
+- Each connection has a 12-second deadline. A failed lo-fi/electronic/jazz
+  connection tries one alternative, without background retry loops. Lo-fi falls
+  back to 181.FM Chilled (calm electronic music, not identical chillhop), electronic
+  to 181.FM Energy 98, and jazz to FluxFM Xjazz. The display identifies the actual
+  provider. A browser autoplay denial does not trigger another provider.
 - Streams use mobile data while playing (roughly 58–144 MB/hour at 128–320 kbps).
 
 ## Production CSP

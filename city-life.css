@@ -1,0 +1,34 @@
+.city-actor { opacity: 0; }
+.walker-umbrella { display: none; }
+.world[data-weather="rain"] .walker-umbrella,
+.world[data-weather="storm"] .walker-umbrella { display: inline; }
+#city-walker.is-passing { animation: city-walk 16s linear both; }
+#city-cyclist.is-passing { animation: city-cycle 13s linear both; }
+#city-driving.is-passing { animation: city-drive 12s linear both; }
+#city-neighbour.is-passing { animation: city-coffee 16s linear both; }
+.world.scene-paused .city-actor { animation-play-state: paused !important; }
+@keyframes city-walk {
+  0% { opacity: 0; transform: translate(815px, 716px); }
+  8%, 90% { opacity: 1; }
+  100% { opacity: 0; transform: translate(1095px, 772px); }
+}
+@keyframes city-cycle {
+  0% { opacity: 0; transform: translate(580px, 780px); }
+  8%, 90% { opacity: 1; }
+  100% { opacity: 0; transform: translate(1080px, 910px); }
+}
+@keyframes city-drive {
+  0% { opacity: 0; transform: translate(1510px, 886px); }
+  8%, 90% { opacity: 1; }
+  100% { opacity: 0; transform: translate(1160px, 985px); }
+}
+@keyframes city-coffee {
+  0% { opacity: 0; transform: translate(1162px, 704px); }
+  10% { opacity: 1; }
+  30%, 65% { opacity: 1; transform: translate(1195px, 737px); }
+  95% { opacity: 1; }
+  100% { opacity: 0; transform: translate(1162px, 704px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .city-life { display: none; }
+}

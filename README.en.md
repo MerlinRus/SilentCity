@@ -23,14 +23,16 @@ Build a soundscape, find some music, and take a moment without having to get any
 | --- | --- |
 | Sharing the city's day | **Your city's time and weather:** choose Moscow, Saint Petersburg, Kirov, or search for another city. Daylight, twilight, a moon, clouds, rain, snow and thunderstorms. Your choice is saved and never changes your sound mix. |
 | Taking a break from the noise | **30 sounds to mix:** rain, a fireplace, thunder, the sea, forest birds, crickets, a purring cat and the Saint Petersburg metro. Each has its own volume. |
-| Finding the right music | **Five live radio genres:** rock'n'roll and oldies, lo-fi, electronic, jazz and blues. The radio marker zooms into a fullscreen SVG receiver with station presets and a volume dial. |
+| Finding the right music | **Five live radio genres:** rock'n'roll and oldies, lo-fi, electronic, jazz and blues. The radio marker gently opens a fullscreen SVG receiver. Choose a genre, press “Пуск” (Start), and turn the volume dial. |
 | Knowing someone else is still awake | **Life in the windows:** 36 little notes from Lena, Misha and Sonya. Read another from the same neighbour or visit a different window. |
 | Clearing your head | **“Your thoughts”** — a private browser notebook, without publishing anything. |
 | Focusing on just one thing | **“The quiet room”** — a 25-minute timer. |
 | Looking around | **“Explore the city”** — the controls fade away and the city moves closer. On a phone, drag to wander around. |
 
-There's also a cat, an occasional tram, a bicycle outside the café,
-and a paper boat in a puddle. You don't need to find everything at once.
+There's also a cat, an occasional tram, a passer-by, a cyclist, a car,
+and a neighbour stepping outside with a cup of coffee. Just one little scene
+at a time, with pauses. A rainy walk comes with an umbrella; a paper boat
+waits in a puddle. You don't need to find everything at once.
 
 ## A closer look
 
