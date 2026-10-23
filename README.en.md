@@ -23,7 +23,7 @@ Build a soundscape, find some music, and take a moment without having to get any
 | --- | --- |
 | Sharing the city's day | **Your city's time and weather:** choose Moscow, Saint Petersburg, Kirov, or search for another city. Daylight, twilight, a moon, clouds, rain, snow and thunderstorms. Your choice is saved and never changes your sound mix. |
 | Taking a break from the noise | **30 sounds to mix:** rain, a fireplace, thunder, the sea, forest birds, crickets, a purring cat and the Saint Petersburg metro. Each has its own volume. |
-| Finding the right music | **Five live radio genres:** rock'n'roll and oldies, lo-fi, electronic, jazz and blues. Real broadcasts, not short recordings on repeat. |
+| Finding the right music | **Five live radio genres:** rock'n'roll and oldies, lo-fi, electronic, jazz and blues. The radio marker zooms into a fullscreen SVG receiver with station presets and a volume dial. |
 | Knowing someone else is still awake | **Life in the windows:** 36 little notes from Lena, Misha and Sonya. Read another from the same neighbour or visit a different window. |
 | Clearing your head | **“Your thoughts”** — a private browser notebook, without publishing anything. |
 | Focusing on just one thing | **“The quiet room”** — a 25-minute timer. |

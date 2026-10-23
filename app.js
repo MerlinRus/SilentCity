@@ -9,6 +9,7 @@ function cancelUiMotion() {
   finishResidentNoteChange();
   content.getAnimations?.({ subtree: true }).forEach((animation) => animation.cancel());
   finishExplorationTransition();
+  finishRadioTravel();
 }
 document.addEventListener('pointerdown', () => document.documentElement.classList.add('pointer-motion'), { capture: true, passive: true });
 document.addEventListener('keydown', () => {
@@ -23,6 +24,8 @@ function revealContent(element) {
   element.animate([{ opacity: .5, transform: 'translateY(4px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 180, easing: 'cubic-bezier(.23,1,.32,1)' });
 }
 const iconPaths = {
+  back: 'M20 12H4m6-6-6 6 6 6',
+  mixer: 'M4 7h6m4 0h6M4 17h10m4 0h2M10 4v6m4 4v6',
   radio: 'M4 8h16v12H4ZM7 8l10-5M8 12v4m-2-2h4m4-2h3m-3 4h3',
   external: 'M7 17 17 7M7 7h10v10',
   notes: 'M8 4h11v14M5 7h11v14H5ZM8 11h5m-5 4h5',
@@ -268,7 +271,7 @@ const cityTram = select('#city-tram');
 let cityLifeTimeout;
 let cityLifeTick = 0;
 let pageAway = false;
-function scenePaused() { return document.hidden || dialog.open || pageAway || world.classList.contains('city-transitioning'); }
+function scenePaused() { return document.hidden || dialog.open || pageAway || world.classList.contains('city-transitioning') || world.classList.contains('radio-travelling'); }
 function lightResident(index) {
   litResident = index;
   residentButtons.forEach((button, buttonIndex) => button.classList.toggle('is-lit', buttonIndex === index));
@@ -543,7 +546,7 @@ function setRadioLevel(value) {
   if (!musicLevel) cancelPendingStation();
   if (audio) {
     musicGain.gain.setTargetAtTime(musicLevel * .8, audio.currentTime, .12);
-    if (musicLevel > 0 && playing && !pendingTrack) switchStation(stationIndex).catch(() => {});
+    if (musicLevel > 0 && playing && !pendingTrack && (!activeTrack || activeTrack.element.paused)) switchStation(stationIndex).catch(() => {});
     if (!musicLevel && activeTrack) {
       const track = activeTrack;
       setTimeout(() => { if (!musicLevel && activeTrack === track) { pauseStation(); syncLiveRadio(); } }, 400);
@@ -924,7 +927,25 @@ function syncLiveRadio() {
     button.setAttribute('aria-busy', String(pendingTrack?.index === index));
   });
   const button = select('#live-radio-toggle');
-  button.textContent = connecting ? 'Отменить подключение' : stationFailed ? 'Повторить подключение' : current ? 'Пауза' : 'Слушать эфир';
+  const actionLabel = connecting ? 'Отменить подключение' : stationFailed ? 'Повторить подключение' : current ? 'Пауза' : 'Слушать эфир';
+  const playLabel = select('#receiver-play-label');
+  if (playLabel) playLabel.textContent = actionLabel;
+  else button.textContent = actionLabel;
+  button.setAttribute('aria-label', actionLabel);
+  const receiver = select('#radio-receiver');
+  if (receiver) {
+    const position = stations.filter((entry) => entry.stream).indexOf(station);
+    receiver.dataset.genre = ['oldies', 'lofi', 'electro', 'jazz', 'blues'][position];
+    receiver.dataset.playing = String(current && !connecting && !stationFailed);
+    select('#receiver-station').textContent = station.name;
+    select('#receiver-provider').textContent = station.description;
+    select('#receiver-signal').textContent = connecting ? 'Подключение' : stationFailed ? 'Нет сигнала' : current ? 'В эфире' : 'Готов к эфиру';
+    select('#radio-needle').setAttribute('transform', `translate(${36 + position * 122} 0)`);
+    select('#receiver-play-icon').setAttribute('d', current && !connecting && !stationFailed ? 'M8 6h3v12H8Zm6 0h3v12h-3Z' : 'm9 5 10 7-10 7Z');
+    setRangeValue(select('#receiver-volume'), musicLevel);
+    select('#receiver-volume-value').textContent = `${Math.round(musicLevel * 100)}%`;
+    select('#receiver-knob-indicator').setAttribute('transform', `rotate(${-135 + musicLevel * 270} 40 40)`);
+  }
 }
 async function playLiveStation(index) {
   liveStationIndex = index;
@@ -935,24 +956,121 @@ async function playLiveStation(index) {
     if (!playing) await toggleAudio();
   } catch {} finally { syncMixer(); }
 }
+let radioTravel = null;
+const radioTravelAnimations = [];
+function radioCameraFrame() {
+  const marker = select('[data-room="live-radio"] .marker-bg');
+  if (!marker) return null;
+  const target = marker.getBoundingClientRect();
+  const bounds = scene.getBoundingClientRect();
+  const centerX = target.left + target.width / 2;
+  const centerY = target.top + target.height / 2;
+  return { origin: `${centerX - bounds.left}px ${centerY - bounds.top}px`, transform: `translate(${innerWidth / 2 - centerX}px, ${innerHeight * .48 - centerY}px) scale(1.9)` };
+}
+function finishRadioTravel() {
+  if (!radioTravel) return;
+  const previous = radioTravel;
+  radioTravel = null;
+  radioTravelAnimations.forEach((animation) => { animation.onfinish = null; animation.cancel(); });
+  radioTravelAnimations.length = 0;
+  scene.style.transformOrigin = previous.originBefore;
+  world.classList.remove('radio-travelling');
+  if (!previous.entering && dialog.open && dialog.classList.contains('radio-dialog')) dialog.close();
+  if (dialog.open && dialog.classList.contains('radio-dialog')) world.classList.add('radio-room-covered');
+  else world.classList.remove('radio-room-active', 'radio-room-covered');
+  syncSceneActivity();
+}
+function startRadioTravel(entering, camera = radioCameraFrame(), firstFrame = null) {
+  finishRadioTravel();
+  world.classList.toggle('radio-room-active', entering);
+  world.classList.remove('radio-room-covered');
+  if (!camera || reducedMotion.matches || !document.documentElement.classList.contains('pointer-motion') || !scene.animate || document.hidden) {
+    if (!entering && dialog.open) dialog.close();
+    world.classList.toggle('radio-room-covered', entering);
+    syncSceneActivity();
+    return;
+  }
+  radioTravel = { entering, originBefore: scene.style.transformOrigin, camera };
+  const current = radioTravel;
+  world.classList.add('radio-travelling');
+  scene.style.transformOrigin = camera.origin;
+  const timing = { duration: 650, easing: 'cubic-bezier(.37,0,.63,1)', fill: 'both' };
+  const animation = scene.animate([{ transform: firstFrame?.transform || (entering ? 'none' : camera.transform) }, { transform: entering ? camera.transform : 'none' }], timing);
+  radioTravelAnimations.push(animation);
+  explorationSurfaces.forEach((element, index) => {
+    const opacity = Number(getComputedStyle(element).opacity);
+    if (!element.getClientRects().length || !opacity) return;
+    radioTravelAnimations.push(element.animate([{ opacity: entering ? opacity : firstFrame?.hud?.[index] ?? 0 }, { opacity: entering ? 0 : opacity }], timing));
+  });
+  if (entering) radioTravelAnimations.push(dialog.animate([{ opacity: 0, offset: 0 }, { opacity: 0, offset: .25 }, { opacity: 1, offset: 1 }], timing));
+  else if (dialog.open) {
+    const exit = dialog.animate([{ opacity: firstFrame?.dialogOpacity ?? 1 }, { opacity: 0 }], { duration: 250, easing: 'cubic-bezier(.23,1,.32,1)', fill: 'both' });
+    exit.onfinish = () => { if (radioTravel === current) dialog.close(); };
+    radioTravelAnimations.push(exit);
+  }
+  animation.onfinish = () => { if (radioTravel === current) finishRadioTravel(); };
+  syncSceneActivity();
+}
+function leaveRadioRoom(animate = true) {
+  if (!dialog.open || radioTravel?.entering === false) return;
+  const camera = radioTravel?.camera || radioCameraFrame();
+  const first = radioTravel ? { transform: getComputedStyle(scene).transform, dialogOpacity: Number(getComputedStyle(dialog).opacity), hud: explorationSurfaces.map((element) => Number(getComputedStyle(element).opacity)) } : null;
+  finishRadioTravel();
+  world.classList.remove('radio-room-active', 'radio-room-covered');
+  if (animate) startRadioTravel(false, camera, first);
+  else { dialog.close(); syncSceneActivity(); }
+}
+window.addEventListener('resize', finishRadioTravel, { passive: true });
+document.addEventListener('visibilitychange', () => { if (document.hidden) finishRadioTravel(); });
+window.addEventListener('pagehide', finishRadioTravel);
+dialog.addEventListener('close', () => { if (!radioTravel) world.classList.remove('radio-room-active', 'radio-room-covered'); });
+dialog.addEventListener('cancel', (event) => {
+  if (!dialog.classList.contains('radio-dialog')) return;
+  event.preventDefault();
+  leaveRadioRoom(false);
+});
 function liveRadioRoom() {
-  if (stations[stationIndex].stream) liveStationIndex = stationIndex;
-  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button id="to-radio">Сцены</button><button class="current" aria-current="page">Эфир</button><button id="to-mixer">Свой микс</button></nav>
-    <span class="room-eyebrow">Городская радиоточка ${svgIcon('radio')}</span><h2 id="room-title">Музыка не спит</h2><p>Прямой эфир: новые треки, а не запись по кругу. Выбери свою волну.</p>
-    <div class="station-list">${stations.map((station, index) => station.stream ? `<button class="station-choice" data-live-station="${index}" aria-pressed="false">${station.name}<span>${station.description}</span></button>` : '').join('')}</div>
-    <p class="live-radio-status" id="live-radio-status" role="status" aria-atomic="true"></p><button class="dialog-action" id="live-radio-toggle">Слушать эфир</button>
-    <p class="live-radio-footnote">Рок-н-ролл и олдиз 50–60-х — Good Time Oldies, лоу-фай и чиллхоп — Chillhop. Станции: <a href="https://181.fm/" target="_blank" rel="noopener noreferrer">181.FM ${svgIcon('external')}</a> и <a href="https://www.fluxfm.de/flux-musik-streams" target="_blank" rel="noopener noreferrer">FluxFM ${svgIcon('external')}</a>.<br>Подключение к станции — только после нажатия. Нужен интернет; в эфире возможны реклама, джинглы и перебои. Громкость — ползунком «Радио», звуки города можно подмешать в «Своём миксе».</p>`;
-  select('#to-radio').addEventListener('click', () => openRoom('radio'));
-  select('#to-mixer').addEventListener('click', () => openRoom('mixer'));
+  if (pendingTrack && stations[pendingTrack.index].stream) liveStationIndex = pendingTrack.index;
+  else if (stations[stationIndex].stream) liveStationIndex = stationIndex;
+  content.innerHTML = `<section class="radio-room" aria-labelledby="room-title">
+    <svg class="radio-room-light" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M840-30h520v930H840Z" fill="#b7c3a2" opacity=".025"/><path d="M1010 0v900M840 240h520M840 560h520" stroke="#c9d0ad" stroke-opacity=".05" stroke-width="3"/><ellipse cx="610" cy="800" rx="490" ry="70" fill="#070f12" opacity=".3"/></svg>
+    <header class="radio-room-header"><button class="radio-back" id="radio-back">${svgIcon('back')} Вернуться в город</button><h2 id="room-title">Музыка не спит</h2><button class="radio-mix-link" id="receiver-mixer">${svgIcon('mixer')} Свой микс</button></header>
+    <div class="radio-room-stage">
+      <div class="radio-receiver" id="radio-receiver" data-genre="lofi">
+        <svg class="receiver-case" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="receiver-wood" x2="0" y2="1"><stop stop-color="#75624c"/><stop offset=".55" stop-color="#544b3b"/><stop offset="1" stop-color="#3d392f"/></linearGradient><linearGradient id="receiver-metal" x2="0" y2="1"><stop stop-color="#c0b28f"/><stop offset="1" stop-color="#8b8469"/></linearGradient></defs><rect x="64" y="570" width="120" height="24" rx="6" fill="#172422"/><rect x="816" y="570" width="120" height="24" rx="6" fill="#172422"/><rect x="2" y="2" width="996" height="576" rx="36" fill="url(#receiver-wood)" stroke="#9a8867" stroke-width="2"/><rect x="24" y="24" width="952" height="530" rx="23" fill="url(#receiver-metal)"/><path d="M44 48h912M44 530h912" stroke="#e1d2ad" stroke-opacity=".3"/><circle cx="45" cy="45" r="3" fill="#68664f"/><circle cx="955" cy="45" r="3" fill="#68664f"/><circle cx="45" cy="532" r="3" fill="#68664f"/><circle cx="955" cy="532" r="3" fill="#68664f"/></svg>
+        <div class="receiver-speaker" aria-hidden="true"><svg viewBox="0 0 420 420"><defs><pattern id="receiver-grille" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#34463c"/><circle cx="4" cy="4" r="2" fill="#142a25"/></pattern></defs><circle cx="210" cy="210" r="198" fill="#74745a"/><circle cx="210" cy="210" r="190" fill="url(#receiver-grille)" stroke="#c6ba94" stroke-width="2"/><circle cx="210" cy="210" r="156" fill="none" stroke="#8c9576" stroke-opacity=".25"/><circle cx="210" cy="210" r="90" fill="#243a31" fill-opacity=".3"/><path d="M175 210h70m-35-35v70" stroke="#b4b48d" stroke-opacity=".15"/></svg><span>после дождя</span></div>
+        <div class="receiver-console">
+          <div class="receiver-display"><div class="receiver-display-top"><span>Городское радио</span><span class="receiver-signal"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="3"/></svg><span id="receiver-signal">Готов к эфиру</span></span></div><p id="receiver-station">Лоу-фай</p><p id="receiver-provider">FluxFM · Chillhop</p>
+            <svg class="receiver-tuner" viewBox="0 0 560 56" aria-hidden="true"><defs><pattern id="receiver-ticks" width="12.2" height="38" patternUnits="userSpaceOnUse"><path d="M0 13v17" stroke="currentColor" stroke-width="1"/></pattern></defs><path d="M8 38h544" stroke="currentColor" stroke-opacity=".45"/><rect x="8" y="0" width="544" height="38" fill="url(#receiver-ticks)" opacity=".55"/><g id="radio-needle" transform="translate(158 0)"><path d="M0 0v45" stroke="currentColor" stroke-width="3"/><path d="m-5 0 5 7 5-7" fill="currentColor"/></g></svg>
+          </div>
+          <div class="receiver-controls"><div class="receiver-transport"><button class="receiver-step" id="receiver-prev" aria-label="Предыдущая станция"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14m12-14L8 12l10 7Z"/></svg></button><button class="receiver-power" id="live-radio-toggle" aria-label="Слушать эфир"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="receiver-play-icon" d="m9 5 10 7-10 7Z"/></svg><span id="receiver-play-label">Слушать эфир</span></button><button class="receiver-step" id="receiver-next" aria-label="Следующая станция"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14M6 5l10 7-10 7Z"/></svg></button></div><label class="receiver-volume" for="receiver-volume"><svg class="receiver-knob" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="37" fill="#62654f" stroke="#d4c6a3"/><circle cx="40" cy="40" r="30" fill="#bdb18e" stroke="#70735b"/><path id="receiver-knob-indicator" d="M40 14v9" stroke="#233c32" stroke-width="3" stroke-linecap="round"/></svg><span>Громкость <output id="receiver-volume-value" for="receiver-volume">45%</output></span><input id="receiver-volume" type="range" min="0" max="100" value="45" aria-label="Громкость радио в радиокомнате"></label></div>
+        </div>
+        <nav class="receiver-stations" aria-label="Выбрать жанр радио">${stations.map((station, index) => station.stream ? `<button class="receiver-preset" data-live-station="${index}" aria-pressed="false"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="3"/></svg><span>${station.name}</span></button>` : '').join('')}</nav>
+      </div>
+      <p class="live-radio-status receiver-status" id="live-radio-status" role="status" aria-atomic="true"></p>
+    </div>
+    <footer class="radio-room-footer"><p>Настройся на свою волну<br><span>Эфир продолжится, даже если вернёшься в город.</span></p><details class="receiver-sources"><summary>Об эфире и станциях</summary><p>Рок-н-ролл и олдиз 50–60-х — Good Time Oldies; лоу-фай — Chillhop. Станции: <a href="https://181.fm/" target="_blank" rel="noopener noreferrer">181.FM ${svgIcon('external')}</a> и <a href="https://www.fluxfm.de/flux-musik-streams" target="_blank" rel="noopener noreferrer">FluxFM ${svgIcon('external')}</a>. Подключение только после нажатия. В эфире возможны реклама, джинглы и перебои. Интернет и мобильный трафик расходуются во время воспроизведения.</p></details></footer>
+  </section>`;
+  select('#radio-back').addEventListener('click', () => leaveRadioRoom());
+  select('#receiver-mixer').addEventListener('click', () => openRoom('mixer'));
   content.querySelectorAll('[data-live-station]').forEach((button) => button.addEventListener('click', () => {
     const index = Number(button.dataset.liveStation);
     if (pendingTrack?.index !== index) playLiveStation(index);
   }));
+  const stepStation = (direction) => {
+    const indices = stations.map((station, index) => station.stream ? index : -1).filter((index) => index >= 0);
+    playLiveStation(indices[(indices.indexOf(liveStationIndex) + direction + indices.length) % indices.length]);
+  };
+  select('#receiver-prev').addEventListener('click', () => stepStation(-1));
+  select('#receiver-next').addEventListener('click', () => stepStation(1));
+  select('#receiver-volume').addEventListener('input', (event) => setRadioLevel(Number(event.target.value) / 100));
   select('#live-radio-toggle').addEventListener('click', () => {
-    if (pendingTrack?.index === liveStationIndex) { cancelPendingStation(); syncLiveRadio(); }
+    if (pendingTrack?.index === liveStationIndex) { cancelPendingStation(); if (stations[stationIndex].stream) liveStationIndex = stationIndex; syncLiveRadio(); }
     else if (playing && musicLevel > 0 && stationIndex === liveStationIndex && !stationFailed) toggleAudio();
     else playLiveStation(liveStationIndex);
   });
+  dialog.scrollTop = 0;
+  if (dialog.open) select('#radio-back').focus({ preventScroll: true });
   syncLiveRadio();
 }
 function mixerRoom() {
@@ -1085,10 +1203,16 @@ function residentRoom(index) {
   if (dialog.open) { reserveResidentSpace(); revealContent(content); }
 }
 function openRoom(room) {
+  const wasOpen = dialog.open;
+  if (room !== 'live-radio') {
+    finishRadioTravel();
+    world.classList.remove('radio-room-active', 'radio-room-covered');
+  }
   finishResidentNoteChange(false);
   finishExplorationTransition();
   dialog.classList.toggle('mixer-dialog', room === 'mixer');
   dialog.classList.toggle('resident-dialog', room === 'resident');
+  dialog.classList.toggle('radio-dialog', room === 'live-radio');
   if (room === 'radio') radioRoom();
   if (room === 'live-radio') liveRadioRoom();
   if (room === 'weather') weatherRoom();
@@ -1120,7 +1244,11 @@ function openRoom(room) {
     dialog.showModal();
     if (room === 'resident') reserveResidentSpace();
   }
-  else if (room !== 'resident') revealContent(content);
+  else if (room !== 'resident' && room !== 'live-radio') revealContent(content);
+  if (room === 'live-radio') {
+    if (!wasOpen) startRadioTravel(true);
+    else world.classList.add('radio-room-active', 'radio-room-covered');
+  }
   syncSceneActivity();
 }
 document.querySelectorAll('.city-place').forEach((place) => {
@@ -1140,7 +1268,7 @@ select('#mixer').addEventListener('click', () => openRoom('mixer'));
 syncMixer();
 select('#help').addEventListener('click', () => openRoom('help'));
 dialog.addEventListener('close', () => finishResidentNoteChange(false));
-select('#close-dialog').addEventListener('click', () => dialog.close());
+select('#close-dialog').addEventListener('click', () => { if (dialog.classList.contains('radio-dialog')) leaveRadioRoom(); else dialog.close(); });
 dialog.addEventListener('click', (event) => {
   const bounds = dialog.getBoundingClientRect();
   if (event.target === dialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) dialog.close();

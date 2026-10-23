@@ -4,6 +4,28 @@ The SVG city marker “Радио” opens five live stations. These are continu
 third-party broadcasts, not local sound loops. The original café scenes and
 30 ambient layers remain available and can be mixed with the broadcast.
 
+## Radio room
+
+The marker opens a native fullscreen dialog containing an SVG receiver.
+Five genre presets, previous/next station buttons, playback, a volume dial
+and the live connection status share the existing audio engine. Opening the
+room never starts audio or requests a stream. Returning to the city keeps an
+already-playing broadcast and the ambient mix; “Свой микс” opens the mixer.
+
+Pointer entry and return use a 650 ms city-camera transition, matching the
+existing exploration motion. Only transform/opacity animate, and city life
+and rain pause while the room is open. Finished or interrupted animations
+are cancelled, the transform origin is restored, and the covered city is
+hidden so no zoomed compositor layer remains. Escape, keyboard use and
+reduced motion skip the camera. Resize, backgrounding and rapid return
+finish or cancel pending transitions safely.
+
+The receiver uses inline SVG and a small scoped stylesheet, without raster
+images, new fonts, libraries, visualizer loops or metadata polling.
+Adjusting volume updates the current gain without reconnecting a healthy
+stream. On narrow screens the speaker is omitted and controls stack; the
+native dialog scrolls vertically when needed and retains keyboard focus.
+
 | Genre | Broadcaster / station | HTTPS stream |
 | --- | --- | --- |
 | Rock’n’roll / 1950s–60s oldies | 181.FM Good Time Oldies | `https://listen.181fm.com/181-goodtime_128k.mp3` |
