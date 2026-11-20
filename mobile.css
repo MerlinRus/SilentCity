@@ -13,6 +13,10 @@ html {
 button, a, [role="button"] { touch-action: manipulation; }
 button, [role="button"] { -webkit-user-select: none; user-select: none; }
 button:active { filter: brightness(1.15); }
+.radio-dock-toggle { display: flex; flex: none; align-items: center; gap: 4px; min-height: 44px; padding: 0 4px; border-radius: 6px; background: transparent; color: inherit; }
+.mix-control .radio-dock-toggle svg { display: block; width: 14px; height: 14px; color: inherit; }
+.radio-dock-toggle[aria-pressed="true"], .radio-dock-toggle[aria-busy="true"] { color: var(--warm); }
+@media (hover: hover) { .radio-dock-toggle:hover { color: var(--warm); } }
 
 @media (pointer: coarse) {
   html, body { overscroll-behavior: none; }

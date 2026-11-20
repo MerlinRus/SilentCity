@@ -489,6 +489,7 @@ let voices = [];
 let stationIndex = 0;
 let playing = false;
 let musicLevel = .45;
+let lastMusicLevel = .45;
 let melodyInterval;
 let toastTimeout;
 let audioBusy = false;
@@ -549,6 +550,7 @@ try {
     });
   }
 } catch {}
+if (musicLevel > 0) lastMusicLevel = musicLevel;
 function mixSnapshot() {
   return { radio: musicLevel, station: stationIndex, layers: Object.fromEntries(layers.map((layer) => [layer.id, layer.level])) };
 }
@@ -579,12 +581,8 @@ function syncMixer() {
   });
   const radioRow = content.querySelector('[data-radio-row]');
   if (radioRow) {
-    radioRow.classList.toggle('enabled', musicLevel > 0);
-    radioRow.querySelector('button').setAttribute('aria-pressed', String(musicLevel > 0));
-    radioRow.querySelector('button').setAttribute('aria-label', `${musicLevel ? 'Выключить' : 'Включить'}: Ночное радио`);
     setRangeValue(radioRow.querySelector('input'), musicLevel);
     radioRow.querySelector('output').textContent = `${Math.round(musicLevel * 100)}%`;
-    radioRow.querySelector('.layer-detail').textContent = stations[stationIndex].name;
   }
   const mixPlay = select('#mix-play');
   if (mixPlay) mixPlay.textContent = playing ? 'Пауза' : 'Слушать микс';
@@ -645,6 +643,7 @@ async function setLayerLevel(id, value, updateMix = true) {
 }
 function setRadioLevel(value, persist = true, tune = true) {
   musicLevel = Math.max(0, Math.min(1, value));
+  if (musicLevel) lastMusicLevel = musicLevel;
   if (!musicLevel) {
     liveRadioEnabled = false;
     cancelPendingStation();
@@ -726,6 +725,26 @@ function pauseStation() {
     activeTrack = null;
   } else activeTrack.element.pause();
 }
+function stationIsPlaying(index) {
+  return activeTrack?.index === index && !activeTrack.element.paused && !activeTrack.element.ended && !activeTrack.element.error && !stationFailed;
+}
+function selectedRadioIsPlaying() {
+  return playing && musicLevel > 0 && stationIsPlaying(stationIndex) && (!stations[stationIndex].stream || liveRadioEnabled);
+}
+function toggleSelectedRadio() {
+  if (pendingTrack?.index === stationIndex) {
+    liveRadioEnabled = false;
+    cancelPendingStation();
+    syncLiveRadio();
+  } else if (selectedRadioIsPlaying()) {
+    setRadioLevel(0);
+  } else {
+    if (!musicLevel) setRadioLevel(lastMusicLevel, true, false);
+    if (!playing) void toggleAudio({ live: true });
+    else if (stations[stationIndex].stream) void playLiveStation(stationIndex);
+    else void switchStation(stationIndex).catch(() => {});
+  }
+}
 async function switchStation(index) {
   const station = stations[index];
   if (station.stream && !liveRadioEnabled) return false;
@@ -739,9 +758,8 @@ async function connectStation(index, useFallback = false) {
   radioFailureMessage = '';
   if (!audio) makeAudio();
   if (!station.stream && activeTrack?.index === index && !activeTrack.element.error && !activeTrack.element.ended) {
-    const playback = activeTrack.element.play();
-    await audio.resume();
-    await playback;
+    await Promise.all([activeTrack.element.play(), audio.resume()]);
+    syncLiveRadio();
     return request === stationRequest;
   }
   const element = document.createElement('audio');
@@ -805,12 +823,16 @@ async function connectStation(index, useFallback = false) {
     syncMixer();
   }
 }
-async function toggleAudio({ tune = true } = {}) {
+async function toggleAudio({ tune = true, live = false } = {}) {
   if (audioBusy) { cancelPendingStation(); syncLiveRadio(); return; }
   audioBusy = true;
   try {
     if (!audio) makeAudio();
-    if (tune && !playing && musicLevel > 0 && (!stations[stationIndex].stream || liveRadioEnabled) && (!activeTrack || activeTrack.element.paused) && !await switchStation(stationIndex)) return;
+    if (tune && !playing && musicLevel > 0) {
+      if (stations[stationIndex].stream) {
+        if (live && !pendingTrack) void startLiveConnection(stationIndex).catch(() => {});
+      } else if (!stationIsPlaying(stationIndex) && !await switchStation(stationIndex)) return;
+    }
     await audio.resume();
     playing = !playing;
     if (!playing) { liveRadioEnabled = false; cancelPendingStation(); }
@@ -836,12 +858,13 @@ async function toggleAudio({ tune = true } = {}) {
     toast('Не удалось включить звук. Попробуй ещё раз.');
   } finally { audioBusy = false; syncLiveRadio(); }
 }
-select('#play').addEventListener('click', toggleAudio);
+select('#play').addEventListener('click', () => toggleAudio({ live: true }));
+select('#dock-radio')?.addEventListener('click', toggleSelectedRadio);
 select('#rain-level').addEventListener('input', (event) => {
   setLayerLevel('rain', Number(event.target.value) / 100);
 });
 select('#music-level').addEventListener('input', (event) => {
-  setRadioLevel(Number(event.target.value) / 100);
+  setRadioLevel(Number(event.target.value) / 100, true, false);
 });
 document.querySelectorAll('input[type=range]').forEach((input) => {
   const update = () => input.style.setProperty('--value', `${input.value}%`);
@@ -1032,10 +1055,32 @@ function radioRoom() {
   select('#radio-toggle').addEventListener('click', async () => { await toggleAudio(); const button = select('#radio-toggle'); if (button) button.textContent = playing ? 'Выключить звук' : 'Включить звук'; });
 }
 function syncLiveRadio() {
+  const connectingSelected = pendingTrack?.index === stationIndex;
+  const activeSelected = selectedRadioIsPlaying();
+  const label = connectingSelected ? 'Отменить подключение радио' : activeSelected ? 'Выключить радио' : 'Включить радио';
+  const icon = connectingSelected || activeSelected ? 'M7 7h10v10H7Z' : iconPaths.play;
+  const dock = select('#dock-radio');
+  const radioRow = content.querySelector('[data-radio-row]');
+  for (const control of [dock, radioRow?.querySelector('button')]) {
+    if (!control) continue;
+    control.setAttribute('aria-label', label);
+    control.setAttribute('title', label);
+    control.setAttribute('aria-pressed', String(activeSelected));
+    control.setAttribute('aria-busy', String(connectingSelected));
+    control.querySelector('path').setAttribute('d', icon);
+  }
+  if (radioRow) {
+    radioRow.classList.toggle('enabled', activeSelected);
+    const stationName = stations[stationIndex].name;
+    const detail = radioRow.querySelector('.layer-detail');
+    const message = connectingSelected ? `${stationName} · подключение…`
+      : stationFailed ? `${stationName} · нет сигнала` : stationName;
+    if (detail.textContent !== message) detail.textContent = message;
+  }
   const status = select('#live-radio-status');
   if (!status) return;
   const connecting = pendingTrack?.index === liveStationIndex;
-  const current = stationIndex === liveStationIndex && playing && musicLevel > 0 && liveRadioEnabled;
+  const current = stationIndex === liveStationIndex && activeSelected;
   const station = stations[liveStationIndex];
   const provider = current ? activeTrack?.description || station.description : station.description;
   status.textContent = connecting ? `Подключаю ${station.name.toLowerCase()}…` : stationFailed ? radioFailureMessage : current ? `В эфире: ${provider}` : 'Выбери жанр и нажми «Пуск». Ручка громкости не запускает эфир.';
@@ -1079,11 +1124,14 @@ function chooseLiveStation(index) {
   saveMix();
   syncMixer();
 }
-async function playLiveStation(index) {
+function startLiveConnection(index) {
   liveRadioEnabled = true;
   liveStationIndex = index;
+  return stationIsPlaying(index) ? Promise.resolve(true) : switchStation(index);
+}
+async function playLiveStation(index) {
   try {
-    const changed = await switchStation(index);
+    const changed = await startLiveConnection(index);
     if (!changed) return;
     if (!musicLevel) setRadioLevel(.45);
     if (!playing) await toggleAudio();
@@ -1219,7 +1267,7 @@ function liveRadioRoom() {
 }
 function mixerRoom() {
   const groups = soundGroups.map((group) => `<section class="mixer-group" data-sound-group="${group.id}" aria-labelledby="sound-group-${group.id}"><h3 id="sound-group-${group.id}">${group.name}</h3>${layers.filter((layer) => layer.group === group.id).map((layer) => `<div class="layer-row" data-layer-row="${layer.id}"><button class="layer-toggle" aria-label="Включить: ${layer.name}" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${layer.icon}"/></svg></button><div class="layer-copy"><span class="layer-name">${layer.name}</span><span class="layer-detail">${layer.detail}</span></div><input type="range" min="0" max="100" value="0" aria-label="Громкость: ${layer.name}"><output>0%</output></div>`).join('')}</section>`).join('');
-  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button id="to-radio">Сцены</button><button id="to-live-radio">Эфир</button><button class="current" aria-current="page">Свой микс</button></nav><h2 id="room-title">Собери своё место</h2><p class="mixer-intro">30 звуков на пять тем.<br>Смешивай и находи свой баланс.</p><label class="mixer-filter"><span>Тема</span><select id="sound-theme"><option value="all">Все темы · 30 звуков</option>${soundGroups.map((group) => `<option value="${group.id}">${group.name} · 6 звуков</option>`).join('')}</select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></label><div class="mixer-list">${groups}<div class="layer-row radio-layer" data-radio-row><button class="layer-toggle" aria-label="Выключить: Ночное радио" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v12H4ZM7 8l10-5M8 12v4m-2-2h4m4-2h3m-3 4h3"/></svg></button><div class="layer-copy"><span class="layer-name">Ночное радио</span><span class="layer-detail">${stations[stationIndex].name}</span></div><input type="range" min="0" max="100" value="45" aria-label="Громкость: Ночное радио"><output>45%</output></div></div><div class="mix-actions"><button class="dialog-action" id="mix-play">Слушать микс</button><button class="mix-clear" id="mix-clear">Выключить всё</button></div><p class="mix-footnote" id="mix-feedback" role="status">Настройки сохраняются в этом браузере. <a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p>`;
+  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button id="to-radio">Сцены</button><button id="to-live-radio">Эфир</button><button class="current" aria-current="page">Свой микс</button></nav><h2 id="room-title">Собери своё место</h2><p class="mixer-intro">30 звуков на пять тем.<br>Смешивай и находи свой баланс.</p><label class="mixer-filter"><span>Тема</span><select id="sound-theme"><option value="all">Все темы · 30 звуков</option>${soundGroups.map((group) => `<option value="${group.id}">${group.name} · 6 звуков</option>`).join('')}</select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></label><div class="mixer-list"><div class="layer-row radio-layer" data-radio-row><button type="button" class="layer-toggle" aria-label="Включить радио" aria-pressed="false">${svgIcon('play')}</button><div class="layer-copy"><span class="layer-name">Радио</span><span class="layer-detail" role="status">${stations[stationIndex].name}</span></div><input type="range" min="0" max="100" value="45" aria-label="Громкость радио в микшере"><output>45%</output></div>${groups}</div><div class="mix-actions"><button class="dialog-action" id="mix-play">Слушать микс</button><button class="mix-clear" id="mix-clear">Выключить всё</button></div><p class="mix-footnote" id="mix-feedback" role="status">Настройки сохраняются в этом браузере. <a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p>`;
   select('.mixer-intro').insertAdjacentHTML('afterend', `<button type="button" class="dialog-action secondary mixer-favorites" id="mixer-favorites">${svgIcon('bookmark')} Любимые атмосферы</button>`);
   select('#mixer-favorites').addEventListener('click', () => {
     openRoom('favorites');
@@ -1237,9 +1285,9 @@ function mixerRoom() {
     row.querySelector('input').addEventListener('input', (event) => setLayerLevel(layer.id, Number(event.target.value) / 100));
   });
   const radioRow = content.querySelector('[data-radio-row]');
-  radioRow.querySelector('button').addEventListener('click', async () => { setRadioLevel(musicLevel > 0 ? 0 : .45); if (musicLevel > 0 && !playing) await toggleAudio(); });
-  radioRow.querySelector('input').addEventListener('input', async (event) => { setRadioLevel(Number(event.target.value) / 100); if (musicLevel > 0 && !playing) await toggleAudio(); });
-  select('#mix-play').addEventListener('click', toggleAudio);
+  radioRow.querySelector('button').addEventListener('click', toggleSelectedRadio);
+  radioRow.querySelector('input').addEventListener('input', (event) => setRadioLevel(Number(event.target.value) / 100, true, false));
+  select('#mix-play').addEventListener('click', () => toggleAudio({ live: true }));
   select('#mix-clear').addEventListener('click', async () => {
     layers.forEach((layer) => setLayerLevel(layer.id, 0, false));
     setRadioLevel(0);
@@ -1280,7 +1328,7 @@ async function playFavorite(mix) {
 
   if (playing) layers.forEach((layer) => startLayer(layer));
   else if (musicLevel > 0 || layers.some((layer) => layer.level > 0)) void toggleAudio({ tune: false });
-  if (musicLevel <= 0 || (activeTrack?.index === stationIndex && !activeTrack.element.paused && !activeTrack.element.error && !activeTrack.element.ended)) return true;
+  if (musicLevel <= 0 || stationIsPlaying(stationIndex)) return true;
   return switchStation(stationIndex).catch(() => false);
 }
 function favoritesRoom() {
@@ -1571,7 +1619,7 @@ dialog.addEventListener('click', (event) => {
 });
 document.addEventListener('keydown', (event) => {
   if (event.target.matches('input,textarea') || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
-  if (event.key.toLowerCase() === 'm') toggleAudio();
+  if (event.key.toLowerCase() === 'm') toggleAudio({ live: true });
   if (event.key.toLowerCase() === 'f') toggleFullscreen();
   if (event.key === 'Escape' && !dialog.open) {
     if (world.classList.contains('exploring')) setExploration(false);

@@ -12,8 +12,10 @@ and the live connection status share the existing audio engine. Opening the
 room never starts audio or requests a stream. Returning to the city keeps an
 already-playing broadcast and the ambient mix; “Свой микс” opens the mixer.
 Choosing a preset or stepping to another genre stops the previous radio stream
-without stopping ambient layers. Only “Пуск” opens the selected live connection;
-changing either volume control cannot start a stopped radio.
+without stopping ambient layers. Start the station with “Пуск” on the receiver,
+the radio control in the main panel or mixer, or the main play and “Слушать микс”
+buttons when radio volume is above zero. Moving a volume slider cannot start a
+stopped live radio.
 
 Pointer entry and return use one 300 ms opacity crossfade on the dialog.
 The complex city SVG is never scaled or transformed for this transition:
@@ -53,7 +55,7 @@ The CC0 licences in `sounds/` do not apply to these broadcasts.
   action, using one native HTML audio element and the existing Web Audio mixer.
 - `crossOrigin="anonymous"` is set before the source URL. No provider scripts,
   iframes, metadata polling, audio decoding into RAM, or new dependencies.
-- Selection changes stop the old stream and require “Пуск”. Superseded pending
+- Selection changes stop the old stream and require a playback action. Superseded pending
   connections are disposed, including on stop, mute and page exit.
 - Pausing or muting releases the live connection after the volume fade;
   resuming reconnects to the current broadcast rather than old buffered music.
