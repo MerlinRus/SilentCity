@@ -67,9 +67,9 @@ Referer и заголовки IP посетителя не передаются.
 
 ## Развёртывание
 
-`deploy/after-rain-weather.service` и `.timer` запускают сборщик от отдельного
-пользователя after-rain-weather. Скрипт лежит в `/opt/after-rain/scripts/`,
-кеш — `/opt/after-rain/site/weather/current.json`. Только каталог кеша доступен
+`deploy/silentcity-weather.service` и `.timer` запускают сборщик от отдельного
+пользователя silentcity-weather. Скрипт лежит в `/opt/silentcity/scripts/`,
+кеш — `/opt/silentcity/site/weather/current.json`. Только каталог кеша доступен
 службе на запись. Релиз содержит относительную ссылку
 `weather.json -> ../../weather/current.json`; Caddy уже монтирует весь `site/`.
 Это сохраняет московские данные между релизами. Для выбора других городов

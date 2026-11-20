@@ -1,33 +1,65 @@
 # city.maark.ru
 
-Сервер: `root@45.85.93.156`, SSH-порт `9022`. Аутентификация локальным SSH-ключом; ключи на сервер вместе с сайтом не передаются.
+## Сервер и схема
 
-Каталог на сервере: `/opt/after-rain`. `compose.yaml` запускает Caddy, который раздаёт статические файлы сайта, аудиозаписи и автоматически получает и продлевает HTTPS-сертификат. Приложение не требует Node.js на сервере. Порты 80/tcp и 443/tcp открыты для сайта. Остальные приложения сервера не изменяются.
+SSH: `ssh -i "$env:USERPROFILE\\.ssh\\id_ed25519" m.pivorental@195.133.25.63 -p 22`.
+Административные команды выполняются через `sudo`. SSH-ключ остаётся на локальном компьютере.
+
+Проект и исходники: `/opt/silentcity`. Docker Compose: `/opt/silentcity/compose.yaml`.
+Контейнер `silentcity-web` раздаёт сайт через Caddy, доступный только на
+`127.0.0.1:3080`. Системный Nginx принимает HTTP/HTTPS для `city.maark.ru`
+и передаёт запросы контейнеру. Порты и конфигурации других проектов не заменяются.
+
+Корневые `compose.yaml` и `Caddyfile` на сервере копируются из `deploy/`.
+TLS завершает Nginx, поэтому Caddy использует HTTP внутри сервера.
+Сертификат: `/etc/letsencrypt/live/city.maark.ru/`, продление через `certbot.timer`.
+Хук `deploy/renew-city-nginx.sh` устанавливается в
+`/etc/letsencrypt/renewal-hooks/deploy/silentcity-nginx.sh` с владельцем root;
+он проверяет и перезагружает Nginx только после продления сертификата города.
 
 Публичная проверка: `https://city.maark.ru/healthz` возвращает `ok`.
+Внутренняя: `curl --resolve city.maark.ru:3080:127.0.0.1 http://city.maark.ru:3080/healthz`.
 
-## Обновление
+## Первый запуск
+
+1. Загрузить исходники в `/opt/silentcity`, создать `site/releases/<release-id>`, `site/weather` и `acme`.
+2. Подготовить статический релиз и ссылку `site/current`, как описано ниже.
+3. Скопировать `deploy/compose.yaml` и `deploy/Caddyfile` в корень проекта.
+4. Проверить `sudo docker compose config --quiet` и конфигурацию Caddy; запустить `sudo docker compose up -d`.
+5. Если домен ещё не настроен, подключить только `deploy/nginx-city-http.conf` как новый виртуальный хост города. Выполнить `sudo nginx -t` перед `sudo systemctl reload nginx`.
+6. После смены A-записи на `195.133.25.63` выпустить сертификат:
+   `sudo certbot certonly --non-interactive --webroot -w /opt/silentcity/acme -d city.maark.ru`.
+7. Установить `deploy/nginx-city.conf` в `/etc/nginx/sites-available/city.maark.ru`; включить его ссылкой из `sites-enabled`. Проверить Nginx и мягко перезагрузить.
+8. Установить хук продления и погодный таймер. Не передавать SSH-ключи в контейнер или архив исходников.
+
+## Обновление и откат
 
 1. Проверить `npm run check` локально.
-2. Создать `/opt/after-rain/site/releases/<release-id>` и загрузить в него `index.html`, `style.css`, `mobile.css`, `climate.css`, `radio-room.css`, `city-life.css`, `app.js`, `weather.js` и каталог `sounds/` с аудиозаписями и атрибуцией. Сохранить ссылку `weather.json -> ../../weather/current.json`.
-3. Из `/opt/after-rain/site` выполнить `ln -s releases/<release-id> current.next`, затем `mv -Tf current.next current`.
-4. Проверить `/healthz` и основные сценарии в браузере. Для изменения статических файлов перезапуск Caddy не нужен.
+2. Создать `/opt/silentcity/site/releases/<release-id>`. Загрузить `index.html`,
+   `style.css`, `mobile.css`, `climate.css`, `radio-room.css`, `city-life.css`,
+   `app.js`, `weather.js` и каталог `sounds/` с записями и атрибуцией.
+   Сохранить ссылку `weather.json -> ../../weather/current.json`.
+3. Из `/opt/silentcity/site` выполнить `ln -s releases/<release-id> current.next`,
+   затем `mv -Tf current.next current`.
+4. Проверить HTTPS, `/healthz`, `/weather.json`, поиск города, аудио и HTTP Range.
+   Для обновления статических файлов перезапуск контейнера не нужен.
 
-Для поиска и погоды выбранного города Caddy должен содержать точные маршруты
-`/city-search` и `/city-weather` из репозиторного конфига. В живой конфигурации
-могут быть соседние приложения: добавлять маршруты адресно, не заменять весь
-Caddyfile репозиторной заготовкой. Перед перезагрузкой — резервная копия и
-`caddy validate`; после — проверка сайта и соседних маршрутов.
+Откат: таким же атомарным переключением вернуть `current` на предыдущий релиз.
+Старые релизы сохраняются. Не выполнять `docker compose down -v`.
 
-## Откат
+## Погода и обслуживание
 
-В `/opt/after-rain/site` создать `current.next`, указывающий на предыдущий каталог `releases/<release-id>`, затем выполнить `mv -Tf current.next current`. Старые релизы сохраняются. Остановка только этого сайта: `cd /opt/after-rain && docker compose stop web`.
+Московский кеш обновляет системный таймер `silentcity-weather.timer` каждые
+10 минут. Служба работает от `silentcity-weather`, имеет право записи только
+в `/opt/silentcity/site/weather`. Файлы службы и таймера лежат в `deploy/`.
+Поиск и погоду других городов проксирует Caddy на фиксированные адреса Open-Meteo.
 
-## Обслуживание
+- Контейнер: `cd /opt/silentcity && sudo docker compose ps`.
+- Логи: `sudo docker logs --tail 100 silentcity-web`.
+- Проверка Caddy: `sudo docker exec silentcity-web caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile`.
+- Погода: `sudo systemctl status silentcity-weather.timer`.
+- Проверка TLS-продления: `sudo certbot renew --cert-name city.maark.ru --dry-run`.
+- Остановить только сайт: `cd /opt/silentcity && sudo docker compose stop web`.
 
-Состояние: `cd /opt/after-rain && docker compose ps`.
-Логи: `docker logs --tail 100 after-rain-web`.
-Проверка конфигурации: `docker exec after-rain-web caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile`.
-Перечитать конфигурацию: `docker exec after-rain-web caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile`.
-
-Имя Compose-проекта зафиксировано как `after-rain`. Тома `after-rain_caddy_data` и `after-rain_caddy_config` содержат состояние Caddy и сертификаты: сохранять при обновлении и не удалять через `docker compose down -v`. Каталог `/srv/site` в Caddyfile — путь внутри контейнера; он монтируется из `/opt/after-rain/site` на сервере.
+Старый сервер `45.85.93.156:9022` и каталог `/opt/after-rain` больше не используются
+для публикации. Его соседние приложения и настройки не переносились.
