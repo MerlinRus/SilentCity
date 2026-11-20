@@ -60,7 +60,13 @@ const residents = [
     { id: 'lena-neighbor', title: 'Соседка сверху', text: 'Отнесла соседке кусок пирога. Вернулась с тремя яблоками и историей про её первую работу. Неплохой обмен.' },
     { id: 'lena-fridge', title: 'Список на завтра', text: 'На холодильнике написано: молоко, батарейки, погулять. Последний пункт всё время забываю. Сегодня обвела его.' },
     { id: 'lena-scarf', title: 'Ещё один ряд', text: 'Вяжу шарф с сентября. Он уже длиннее меня, а пряжа не кончается. Похоже, к зиме одену весь подъезд.' },
-    { id: 'lena-morning', title: 'Всё приготовлено', text: 'Положила на стол чистую ложку и любимый чай. Маленький подарок завтрашней себе. Утром она обычно сонная.' }
+    { id: 'lena-morning', title: 'Всё приготовлено', text: 'Положила на стол чистую ложку и любимый чай. Маленький подарок завтрашней себе. Утром она обычно сонная.' },
+    { id: 'lena-porch', title: 'Свет над дверью', text: 'Сосед снова возвращается поздно. Оставила ему свет у подъезда. Пусть хотя бы ключи сегодня найдутся с первого раза.',
+      story: { x: 1159, y: 685, visible: ({ phase }) => phase === 'dusk' || phase === 'night', art: `
+        <ellipse cy="29" rx="39" ry="13" fill="url(#lamp)"/>
+        <ellipse cy="-24" rx="31" ry="32" fill="url(#lamp)"/>
+        <path d="M-10-23 10-30l-4-7-12 4Z" fill="#efd299" stroke="#6d654b" stroke-width="1.5"/>
+        <path d="m-7-24 14-5" stroke="#f9e5b7" stroke-width="2" stroke-linecap="round"/>` } }
   ] },
   { name: 'Миша', place: 'Пятый этаж · окно с пластинками', row: 1, column: 5, object: 'M49 74h39v16H49Zm29 8a10 4 0 1 1-20 0 10 4 0 1 1 20 0m5-5 2-5h5', notes: [
     { id: 'misha-record', title: 'Последняя сторона', text: 'Пластинка закончилась минут десять назад. Всё сижу, слушаю, как шуршит игла. Иногда и этого достаточно.' },
@@ -74,7 +80,15 @@ const residents = [
     { id: 'misha-rain', title: 'Без ударных', text: 'Выключил музыку: дождь по жестяному подоконнику сегодня играет лучше. Особенно та капля, которая всё время мимо ритма.' },
     { id: 'misha-shelf', title: 'По алфавиту не вышло', text: 'Хотел разобрать пластинки, но каждую вторую включал. На полке всё ещё беспорядок. Вечер зато удался.' },
     { id: 'misha-friend', title: 'Один трек в ответ', text: 'Друг прислал песню без единого слова. Не виделись полгода, а я сразу понял, что у него всё нормально.' },
-    { id: 'misha-quiet', title: 'Погромче тишину', text: 'Снял наушники, а в комнате гудит холодильник и кто-то идёт по лестнице. Ничего особенного. Просто я уже дома.' }
+    { id: 'misha-quiet', title: 'Погромче тишину', text: 'Снял наушники, а в комнате гудит холодильник и кто-то идёт по лестнице. Ничего особенного. Просто я уже дома.' },
+    { id: 'misha-red-umbrella', title: 'Красный зонт у кафе', text: 'В прошлый раз оставил зонт у кафе, и кто-то поставил его под козырёк. Сегодня вернул его туда уже нарочно. Если промокнешь, бери.',
+      story: { x: 1017, y: 705, visible: ({ weather }) => weather === 'rain' || weather === 'storm', art: `
+        <ellipse cx="-2" cy="11" rx="21" ry="4" fill="#132d31" opacity=".45"/>
+        <g transform="rotate(24)" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M0 14v-44q0-8 7-6 4 1 3 6" fill="none" stroke="#c9b795" stroke-width="2"/>
+          <path d="M0 13-7-15-3-24h6l4 9Z" fill="#ad6556" stroke="#573f39" stroke-width="1.4"/>
+          <path d="M1 7-2-20m-3 4h10" stroke="#e3a485" stroke-width="1.2"/>
+        </g>` } }
   ] },
   { name: 'Соня', place: 'Первый этаж · окно с растениями', row: 5, column: 0, object: 'M61 77h18l-3 13H64Zm9 0V54m0 14c-10 0-13-7-13-11 9 0 13 4 13 11Zm0-7c9 0 12-7 12-11-8 0-12 4-12 11Z', notes: [
     { id: 'sonya-leaf', title: 'Кажется, новый лист', text: 'Поливала цветы и заметила маленький лист у фикуса. Три недели ничего, а потом — вот. На сегодня хороших новостей хватит.' },
@@ -88,7 +102,14 @@ const residents = [
     { id: 'sonya-light', title: 'Переставила лампу', text: 'Подвинула лампу к цветам. Теперь от монстеры на стене огромная тень. Сижу в своей маленькой ночной оранжерее.' },
     { id: 'sonya-gift', title: 'Один оставила себе', text: 'Укоренила пять отростков, раздала четыре. Теперь у друзей на окнах живут кусочки моего подоконника. Приятно об этом думать.' },
     { id: 'sonya-balcony', title: 'После дождя', text: 'Открыла балкон, и запахло мокрой землёй. Даже чай немного остыл, пока стояла. Пожалуй, заварю ещё.' },
-    { id: 'sonya-drawing', title: 'Третий лист справа', text: 'Рисовала свой фикус. Получилось дерево, которого не существует. Повесила рисунок рядом: пусть у него будет компания.' }
+    { id: 'sonya-drawing', title: 'Третий лист справа', text: 'Рисовала свой фикус. Получилось дерево, которого не существует. Повесила рисунок рядом: пусть у него будет компания.' },
+    { id: 'sonya-blue-planter', title: 'Базилик греется', text: 'В ясный день выношу синюю плошку на ступеньку. У базилика пока четыре листа, но, кажется, он уже знает, где во дворе солнце.',
+      story: { x: 907, y: 682, visible: ({ phase, weather }) => phase === 'day' && weather === 'clear', art: `
+        <path d="m-26 4 42 7 12-6-42-7Zm0 0v5l42 7v-5Zm42 7v5l12-6V5Z" fill="#68837b" stroke="#516e68" stroke-width="1" stroke-linejoin="round"/>
+        <path d="M-19-5 17-2 13 8-14 5Z" fill="#5c8592" stroke="#355666" stroke-width="1.5"/>
+        <path d="M-20-8 18-5 17-1-19-4Z" fill="#8aacb3" stroke="#406575" stroke-width="1.2"/>
+        <path d="M-9-6v-12m9 13v-15m9 16v-12" stroke="#405e38" stroke-width="1.6"/>
+        <path d="M-9-14q-9 0-9-7 7 1 9 7Zm0-2q1-7 8-6-2 6-8 6ZM0-15q-7-2-6-9 7 3 6 9Zm0-4q3-7 10-7-2 7-10 7Zm9 8q-7-1-7-7 7 1 7 7Zm0-3q1-6 8-7-1 6-8 7Z" fill="#789e59" stroke="#4b6b42" stroke-width=".7"/>` } }
   ] }
 ];
 const residentNoteIds = new Set(residents.flatMap((resident) => resident.notes.map((note) => note.id)));
@@ -99,18 +120,22 @@ try {
   if (Array.isArray(saved?.read)) readResidentNotes = new Set(saved.read.filter((id) => residentNoteIds.has(id)));
   if (residentNoteIds.has(saved?.last)) lastResidentNote = saved.last;
 } catch {}
+const residentStories = residents.flatMap((resident, index) => resident.notes.filter((note) => note.story).map((note) => ({ index, note })));
+function rememberResidentNote(note) {
+  readResidentNotes.add(note.id);
+  lastResidentNote = note.id;
+  try { account.set('after-rain-resident-notes-v1', JSON.stringify({ read: [...readResidentNotes], last: lastResidentNote })); } catch {}
+  return note;
+}
 function chooseResidentNote(index) {
-  const notes = residents[index].notes;
+  const notes = residents[index].notes.filter((note) => !note.story || note.story.visible(world.dataset));
   let unread = notes.filter((note) => !readResidentNotes.has(note.id));
   if (!unread.length) {
     notes.forEach((note) => readResidentNotes.delete(note.id));
     unread = notes.filter((note) => note.id !== lastResidentNote);
   }
-  const note = unread[Math.floor(Math.random() * unread.length)];
-  readResidentNotes.add(note.id);
-  lastResidentNote = note.id;
-  try { account.set('after-rain-resident-notes-v1', JSON.stringify({ read: [...readResidentNotes], last: lastResidentNote })); } catch {}
-  return note;
+  const note = unread.find((candidate) => candidate.story) ?? unread[Math.floor(Math.random() * unread.length)];
+  return rememberResidentNote(note);
 }
 const residentWindows = [];
 const city = [];
@@ -246,6 +271,13 @@ for (let index = 0; index < 95; index++) {
   const x = 550 + random() * 1000;
   const y = 700 + random() * 220;
   city.push(`<path d="M${x} ${y}l${8 + random() * 28} ${random() * 2}" stroke="${random() > .75 ? '#c6b17f' : '#6c9490'}" stroke-opacity="${random() * .17}"/>`);
+}
+for (const { index, note } of residentStories) {
+  const { x, y, art } = note.story;
+  city.push(`<g id="story-${note.id}" class="resident-story" display="none" role="button" tabindex="0" aria-haspopup="dialog" aria-label="${residents[index].name}: ${note.title}" transform="translate(${x} ${y})">
+    <rect class="resident-story-hit" x="-35" y="-39" width="70" height="72" rx="8" fill="transparent" pointer-events="all"/>
+    <g aria-hidden="true" pointer-events="none">${art}</g>
+  </g>`);
 }
 function marker(x, y, label, icon, room, labelWidth = 98) {
   city.push(`<g class="city-place" role="button" tabindex="0" aria-label="${label}" data-room="${room}"><rect x="${x - 50}" y="${y - 55}" width="100" height="100" fill="transparent" pointer-events="all"/><g class="place-marker"><rect class="marker-bg" x="${x - 17}" y="${y - 22}" width="34" height="34" rx="17" fill="#233c38" stroke="#c8bb8f" stroke-opacity=".65"/><svg x="${x - 9}" y="${y - 14}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f1dbad" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${iconPaths[icon]}"/></svg><path d="m${x - 4} ${y + 12} 4 5 4-5" fill="#233c38" stroke="#c8bb8f" stroke-opacity=".65"/><rect x="${x - labelWidth / 2}" y="${y - 49}" width="${labelWidth}" height="21" rx="10" fill="#1d3332" fill-opacity=".95"/><text x="${x}" y="${y - 35}" text-anchor="middle" font-size="10" fill="#cfceaf">${label}</text></g></g>`);
@@ -1259,11 +1291,11 @@ function reserveResidentSpace(retry = true) {
   residentSizeKey = key;
   if (retry && elements.some((element, column) => getComputedStyle(element).width !== widths[column])) reserveResidentSpace(false);
 }
-function residentRoom(index) {
+function residentRoom(index, storyNote) {
   finishResidentNoteChange(false);
   residentSizeKey = '';
   const resident = residents[index];
-  const note = chooseResidentNote(index);
+  const note = storyNote ? rememberResidentNote(storyNote) : chooseResidentNote(index);
   lightResident(index);
   content.innerHTML = `<span class="room-eyebrow">Жизнь в окнах</span><h2 id="room-title">${note.title}</h2>
     <svg class="resident-illustration" viewBox="0 0 240 120" fill="none" aria-hidden="true">
@@ -1282,7 +1314,7 @@ function residentRoom(index) {
   select('#resident-return').addEventListener('click', () => dialog.close());
   if (dialog.open) { reserveResidentSpace(); revealContent(content); }
 }
-function openRoom(room) {
+function openRoom(room, storyNote) {
   const wasOpen = dialog.open;
   if (room !== 'live-radio') {
     finishRadioTravel();
@@ -1298,7 +1330,7 @@ function openRoom(room) {
   if (room === 'weather') weatherRoom();
   if (room === 'cities') cityRoom();
   if (room === 'mixer') mixerRoom();
-  if (room === 'resident') residentRoom(litResident);
+  if (room === 'resident') residentRoom(litResident, storyNote);
   if (room === 'account') accountRoom(content, location.hash === '#account-error');
   if (room === 'notes') {
     content.innerHTML = `<span class="room-eyebrow">Окно на четвёртом</span><h2 id="room-title">Оставь это здесь</h2><p>Мысль, которая не даёт уснуть. Идею на завтра. Или пару слов самому себе.</p><label for="notes" class="saved-label">Твои заметки</label><textarea id="notes" placeholder="О чём ты сейчас думаешь?"></textarea><span class="saved-label" id="save-status" role="status">${account.signedIn() ? 'Синхронизируется через аккаунт.' : 'Только в этом браузере.'}</span><button class="dialog-action secondary" id="notes-account">${account.signedIn() ? 'Аккаунт' : 'Войти для синхронизации'}</button>`;
@@ -1346,13 +1378,19 @@ document.querySelectorAll('.city-place').forEach((place) => {
   place.addEventListener('click', () => openRoom(place.dataset.room));
   place.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openRoom(place.dataset.room); } });
 });
-residentButtons.forEach((button, index) => {
-  const openResident = () => { lightResident(index); openRoom('resident'); };
+function bindResidentButton(button, index, storyNote) {
+  const openResident = () => { lightResident(index); openRoom('resident', storyNote); };
   button.addEventListener('click', openResident);
   button.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openResident(); }
   });
-});
+}
+residentButtons.forEach((button, index) => bindResidentButton(button, index));
+for (const story of residentStories) {
+  const { index, note } = story;
+  story.button = select(`#story-${note.id}`);
+  bindResidentButton(story.button, index, note);
+}
 select('#meet-resident').addEventListener('click', () => openRoom('resident'));
 select('#station').addEventListener('click', () => openRoom(layers.some((layer) => layer.level > 0) ? 'mixer' : stations[stationIndex].stream ? 'live-radio' : 'radio'));
 select('#mixer').addEventListener('click', () => openRoom('mixer'));
@@ -1468,12 +1506,13 @@ function mixColour(dark, light, amount) {
 }
 function applyClimate(frame) {
   if (scenePaused()) return;
-  const signature = `${frame.light}:${frame.kind}:${frame.cloud}:${frame.wind}:${frame.precipitation}`;
+  const signature = `${frame.phase}:${frame.light}:${frame.kind}:${frame.cloud}:${frame.wind}:${frame.precipitation}`;
   if (signature === climateSignature) return;
   climateSignature = signature;
   world.dataset.phase = frame.phase;
   world.dataset.weather = frame.kind;
   world.dataset.bright = String(frame.light > .55);
+  for (const { note, button } of residentStories) button.classList.toggle('is-active', note.story.visible(world.dataset));
   Object.entries(cityPalette).forEach(([dark, light]) => world.style.setProperty(`--city-${dark}`, mixColour(dark, light, frame.light)));
   world.style.setProperty('--sky-top', mixColour('14272a', frame.cloud > .7 ? '9fb5b4' : 'bfd8d6', frame.light));
   world.style.setProperty('--sky-bottom', mixColour('1c3030', frame.cloud > .7 ? 'c0cebf' : 'e1e4c7', frame.light));

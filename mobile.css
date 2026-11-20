@@ -405,6 +405,9 @@ button:active { filter: brightness(1.15); }
 @media (max-height: 700px) { .mixer-dialog .mixer-intro { display: none; } }
 .resident-measure { position: absolute; inset: 0 auto auto 0; width: 100%; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
 .resident-measure > div { display: grid; }
+.resident-story.is-active { display: inline; cursor: pointer; }
+.resident-story:focus-visible { outline: none; }
+.resident-story:focus-visible .resident-story-hit { stroke: var(--warm); stroke-width: 2; }
 .account-button { flex: 0 0 auto; width: 36px; height: 44px; color: inherit; }
 .account-button svg { width: 21px; height: 21px; }
 .account-form { display: grid; gap: 12px; }
