@@ -7,7 +7,7 @@ const dialog = select('#room-dialog');
 const content = select('#room-content');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 let residentNoteChange = null;
-let residentSizeKey = '';
+let residentLayout;
 function cancelUiMotion() {
   finishResidentNoteChange();
   content.getAnimations?.({ subtree: true }).forEach((animation) => animation.cancel());
@@ -51,7 +51,7 @@ function random() {
 const points = (coordinates) => coordinates.map((point) => point.join(',')).join(' ');
 const polygon = (coordinates, fill, attributes = '') => `<polygon points="${points(coordinates)}" fill="${fill}" ${fill === 'url(#reflection)' ? 'class="ground-reflection"' : ''} ${attributes}/>`;
 const residents = [
-  { name: 'Лена', place: 'Шестой этаж · окно с чайником', row: 0, column: 1, object: 'M57 76h19v13H57Zm19 2h4a4 4 0 0 1 0 8h-4M61 70c-4-4 4-6 0-10m7 10c-4-4 4-6 0-10', notes: [
+  { name: 'Лена', place: 'Шестой этаж · окно с чайником', house: 'center', row: 0, column: 1, object: 'M57 76h19v13H57Zm19 2h4a4 4 0 0 1 0 8h-4M61 70c-4-4 4-6 0-10m7 10c-4-4 4-6 0-10', notes: [
     { id: 'lena-tea', title: 'Чайник уже закипел', text: 'Опять заварила на двоих, хотя дома одна. Вторую чашку мысленно оставляю тебе. Сиди сколько хочется.' },
     { id: 'lena-bread', title: 'Почти по рецепту', text: 'Испекла хлеб. Снизу подгорел, сверху красавец. Отрезала корочку и съела ещё тёплым, прямо у окна.' },
     { id: 'lena-umbrella', title: 'Чужой зонт', text: 'Взяла в кафе не свой зонт. Этот весь в маленьких утках. Завтра верну, а сегодня дождь был неожиданно весёлым.' },
@@ -71,7 +71,7 @@ const residents = [
         <path d="M-10-23 10-30l-4-7-12 4Z" fill="#efd299" stroke="#6d654b" stroke-width="1.5"/>
         <path d="m-7-24 14-5" stroke="#f9e5b7" stroke-width="2" stroke-linecap="round"/>` } }
   ] },
-  { name: 'Миша', place: 'Пятый этаж · окно с пластинками', row: 1, column: 5, object: 'M49 74h39v16H49Zm29 8a10 4 0 1 1-20 0 10 4 0 1 1 20 0m5-5 2-5h5', notes: [
+  { name: 'Миша', place: 'Пятый этаж · окно с пластинками', house: 'center', row: 1, column: 5, object: 'M49 74h39v16H49Zm29 8a10 4 0 1 1-20 0 10 4 0 1 1 20 0m5-5 2-5h5', notes: [
     { id: 'misha-record', title: 'Последняя сторона', text: 'Пластинка закончилась минут десять назад. Всё сижу, слушаю, как шуршит игла. Иногда и этого достаточно.' },
     { id: 'misha-piano', title: 'Знакомые три ноты', text: 'За стеной учат одну мелодию. Уже третий вечер. Сегодня сыграли без ошибки, и я тихонько похлопал в стену.' },
     { id: 'misha-cover', title: 'На обороте обложки', text: 'Купил старую пластинку. На конверте написано: «Саше, чтобы не скучал». Саша, если что, музыка всё ещё хорошая.' },
@@ -93,7 +93,7 @@ const residents = [
           <path d="M1 7-2-20m-3 4h10" stroke="#e3a485" stroke-width="1.2"/>
         </g>` } }
   ] },
-  { name: 'Соня', place: 'Первый этаж · окно с растениями', row: 5, column: 0, object: 'M61 77h18l-3 13H64Zm9 0V54m0 14c-10 0-13-7-13-11 9 0 13 4 13 11Zm0-7c9 0 12-7 12-11-8 0-12 4-12 11Z', notes: [
+  { name: 'Соня', place: 'Первый этаж · окно с растениями', house: 'center', row: 5, column: 0, object: 'M61 77h18l-3 13H64Zm9 0V54m0 14c-10 0-13-7-13-11 9 0 13 4 13 11Zm0-7c9 0 12-7 12-11-8 0-12 4-12 11Z', notes: [
     { id: 'sonya-leaf', title: 'Кажется, новый лист', text: 'Поливала цветы и заметила маленький лист у фикуса. Три недели ничего, а потом — вот. На сегодня хороших новостей хватит.' },
     { id: 'sonya-cutting', title: 'Корешок в стакане', text: 'Черенок, который дали в автобусе, пустил корни. Женщину звали Нина. Нина, у нас с вашим цветком всё получается.' },
     { id: 'sonya-basil', title: 'Базилик на ужин', text: 'Вырастила базилик и теперь жалею срывать листья. Пока просто нюхаю его над макаронами. Тоже вполне работает.' },
@@ -113,6 +113,33 @@ const residents = [
         <path d="M-20-8 18-5 17-1-19-4Z" fill="#8aacb3" stroke="#406575" stroke-width="1.2"/>
         <path d="M-9-6v-12m9 13v-15m9 16v-12" stroke="#405e38" stroke-width="1.6"/>
         <path d="M-9-14q-9 0-9-7 7 1 9 7Zm0-2q1-7 8-6-2 6-8 6ZM0-15q-7-2-6-9 7 3 6 9Zm0-4q3-7 10-7-2 7-10 7Zm9 8q-7-1-7-7 7 1 7 7Zm0-3q1-6 8-7-1 6-8 7Z" fill="#789e59" stroke="#4b6b42" stroke-width=".7"/>` } }
+  ] },
+  { name: 'Ира', place: 'Дом слева · окно с книгами', house: 'left', row: 2, column: 1,
+    object: 'M69 74c-5-4-11-5-18-3v15c7-2 13-1 18 3 5-4 11-5 18-3V71c-7-2-13-1-18 3Zm0 0v15m-14-14c4-1 7 0 10 2m-10 3c4-1 7 0 10 2m8-5c3-2 6-3 10-2m-10 7c3-2 6-3 10-2', notes: [
+    { id: 'ira-binding', title: 'Синяя нитка', text: 'Переплела детскую книжку синей ниткой. Мальчик спросил, видно ли теперь шрам. Показала, где. Он сказал, что так красивее.' },
+    { id: 'ira-library-slip', title: 'На обратной стороне', text: 'В старом формуляре двенадцать лет подряд расписывался один человек. Почерк менялся, а книжка всё та же.' },
+    { id: 'ira-ticket', title: 'Билет на двоих', text: 'Между страницами нашла два билета в кино. Места через проход. Наверное, всё равно пересели поближе.' },
+    { id: 'ira-glue', title: 'До утра под прессом', text: 'Оставила книгу сохнуть под стопкой словарей. У меня на работе даже у тяжёлых слов бывает простое дело.' },
+    { id: 'ira-margin', title: 'Здесь кто-то засмеялся', text: 'На полях карандашом написано «ха». Вытерла все пометки, кроме этой. Любопытно, засмеётся ли следующий читатель там же.' },
+    { id: 'ira-return', title: 'Последняя книга', text: 'Книгу вернули прямо перед закрытием. Пока ставила её на полку, успела прочитать последнюю страницу. Теперь придётся начать с первой.' }
+  ] },
+  { name: 'Павел', place: 'Дом за двором · окно с часами', house: 'inner', side: true, row: 2, column: 1,
+    object: 'M57 89h25M60 87v-4m19 4v-4M69 66a10 10 0 1 1 0 20 10 10 0 1 1 0-20Zm0 4v6l4 2M60 67l-3-3m21 3 3-3', notes: [
+    { id: 'pavel-minute', title: 'На минуту вперёд', text: 'Дочинил часы с кухни. Поставил на минуту вперёд. Теперь успею вынуть пирог, если хоть раз им поверю.' },
+    { id: 'pavel-alarm', title: 'Будильник к субботе', text: 'Принесли будильник и попросили сделать звонок потише. «Вставать всё равно буду, — сказали, — просто без обиды».' },
+    { id: 'pavel-screw', title: 'Пропавший винтик', text: 'Полвечера искал винтик на полу. Нашёл монету, пуговицу и ключ от старого почтового ящика. Винтик всё это время лежал на рукаве.' },
+    { id: 'pavel-film', title: 'Свёрток у двери', text: 'Нашёл у подъезда коробочку с плёнкой. Отнёс Нике из дома справа. Она посмотрела на свет и сказала, что там ещё осталось несколько кадров.' },
+    { id: 'pavel-cuckoo', title: 'Кукушка молчит', text: 'Настенные часы уже идут, а кукушка пока не вылезает. Оставил дверцу приоткрытой. Может, ей нужно время освоиться.' },
+    { id: 'pavel-tram', title: 'Пора домой', text: 'Слышно, как трамвай проходит поворот. Часы в мастерской пока разобраны, но я и так знаю, что пора домой.' }
+  ] },
+  { name: 'Ника', place: 'Дом справа · окно с фотоаппаратом', house: 'right', row: 4, column: 1,
+    object: 'M50 72h9l4-6h13l4 6h8v17H50Zm20 3a5 5 0 1 1 0 10 5 5 0 1 1 0-10Zm10 0h4M54 68h5', notes: [
+    { id: 'nika-roll', title: 'Ещё три кадра', text: 'Павел нашёл мою плёнку. Осталось три кадра. Один оставлю для первого снега, если опять не сниму кота по дороге домой.' },
+    { id: 'nika-darkroom', title: 'Под красной лампой', text: 'Снимок в ванночке проявился не сразу. Сперва проступило окно, потом рука на подоконнике. Уже забыла, кого снимала.' },
+    { id: 'nika-puddle', title: 'Двор вверх ногами', text: 'Присела у лужи, чтобы снять дом в отражении. Сосед решил, что я уронила ключи, и искал их со мной.' },
+    { id: 'nika-mist', title: 'Почти ничего не видно', text: 'Сняла двор в тумане. На плёнке, наверное, останется один фонарь. По нему всё равно узнаю, где это было.' },
+    { id: 'nika-portrait', title: 'Секунду после', text: 'На портрете Ира закрыла глаза. Хотела переснять, а она попросила оставить. Говорит, это первая фотография, на которой она отдыхает.' },
+    { id: 'nika-contact', title: 'Кадр у края', text: 'Разложила пробные отпечатки на столе. Самый любимый — тот, где я уже опускала камеру и в угол попал свет из кафе.' }
   ] }
 ];
 const residentNoteIds = new Set(residents.flatMap((resident) => resident.notes.map((note) => note.id)));
@@ -142,7 +169,7 @@ function chooseResidentNote(index) {
 }
 const residentWindows = [];
 const city = [];
-city.push(`<svg viewBox="0 0 1600 1000" xmlns="http://www.w3.org/2000/svg" role="group" aria-labelledby="city-title"><title id="city-title">Тихий квартал: кафе, радио, заметки, комната для фокуса и три окна с записками жителей</title><defs>
+city.push(`<svg viewBox="0 0 1600 1000" xmlns="http://www.w3.org/2000/svg" role="group" aria-labelledby="city-title"><title id="city-title">Тихий квартал: кафе, радио, заметки, комната для фокуса и окна с письмами жителей</title><defs>
   <linearGradient id="road" x2="0" y2="1"><stop stop-color="#253a3b"/><stop offset="1" stop-color="#172b31"/></linearGradient>
   <linearGradient id="glass" x2="0" y2="1"><stop stop-color="#f0cb8f"/><stop offset="1" stop-color="#c28d52"/></linearGradient>
   <linearGradient id="reflection" x2="0" y2="1"><stop stop-color="#d3b17a" stop-opacity=".18"/><stop offset="1" stop-color="#d3b17a" stop-opacity="0"/></linearGradient>
@@ -151,7 +178,7 @@ city.push(`<svg viewBox="0 0 1600 1000" xmlns="http://www.w3.org/2000/svg" role=
   <pattern id="pavement" width="40" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(13)"><path d="M0 0H40M0 20H40M20 0V20" fill="none" stroke="#7a9990" stroke-opacity=".06" stroke-width=".8"/></pattern>
   </defs>`);
 
-function building({ x, y, width, height, depth, rows, columns, color = '#263b3b', side = '#1c3032', roof = '#344947', lit = .28, detail = true }) {
+function building({ house, x, y, width, height, depth, rows, columns, color = '#263b3b', side = '#1c3032', roof = '#344947', lit = .28, detail = true }) {
   const slope = width * .2;
   const recess = depth * .56;
   city.push(polygon([[x - 25, y + height + 5], [x + width, y + height + slope + 25], [x + width + depth + 90, y + height + slope - recess + 30], [x + depth, y + height - recess]], '#091c2370'));
@@ -161,6 +188,8 @@ function building({ x, y, width, height, depth, rows, columns, color = '#263b3b'
   city.push(`<path class="roof-edge" d="M${x},${y + 5} l${width},${slope} l${depth},${-recess}" stroke="#98a99a" stroke-opacity=".15" fill="none" stroke-width="3"/>`);
   const rowSpacing = (height - 50) / rows;
   const windowHeight = Math.min(29, rowSpacing * .58);
+  const sideCount = Math.max(1, Math.floor(depth / 28));
+  const occupants = house ? residents.flatMap((resident, index) => resident.house === house ? [{ resident, index }] : []) : [];
   for (let row = 0; row < rows; row++) {
     const windowY = y + 30 + row * rowSpacing;
     if (detail) city.push(`<path d="M${x} ${windowY + (windowHeight + rowSpacing) / 2}l${width} ${slope}" stroke="#101f23" stroke-opacity=".28" fill="none"/>`);
@@ -183,16 +212,19 @@ function building({ x, y, width, height, depth, rows, columns, color = '#263b3b'
         if (random() > .5) city.push(polygon([[windowX, windowY + offset], [windowX + windowWidth * .35, windowY + offset + 2], [windowX + windowWidth * .24, windowY + offset + windowHeight], [windowX, windowY + offset + windowHeight]], '#635f48', 'opacity=".6"'));
       }
       if (isLit) city.push('</g>');
-      if (x === 858) {
-        const residentIndex = residents.findIndex((resident) => resident.row === row && resident.column === column);
-        if (residentIndex !== -1) residentWindows[residentIndex] = { x: windowX, y: windowY + offset, width: windowWidth, height: windowHeight };
+      if (occupants.length) {
+        const room = occupants.find(({ resident }) => !resident.side && resident.row === row && resident.column === column);
+        if (room) residentWindows[room.index] = { x: windowX, y: windowY + offset, width: windowWidth, height: windowHeight, tilt: 11.3 };
       }
     }
-    const sideCount = Math.max(1, Math.floor(depth / 28));
     for (let column = 0; column < sideCount; column++) {
       const sideX = x + width + 14 + column * ((depth - 15) / sideCount);
       const sideY = windowY + slope - (sideX - x - width) * .56;
       city.push(polygon([[sideX, sideY], [sideX + 13, sideY - 7.3], [sideX + 13, sideY + 16], [sideX, sideY + 23]], random() < lit * .6 ? '#ae9868' : '#11282c', 'opacity=".65"'));
+      if (occupants.length) {
+        const room = occupants.find(({ resident }) => resident.side && resident.row === row && resident.column === column);
+        if (room) residentWindows[room.index] = { x: sideX, y: sideY, width: 13, height: 23, tilt: -29.3 };
+      }
     }
   }
   if (detail) {
@@ -219,12 +251,12 @@ city.push(`<g id="city-tram" aria-hidden="true" pointer-events="none">
   <path d="m12-2 8-4v4l-8 4Zm39-20 8-4v4l-8 4Z" fill="#142a2d"/>
   <path d="m21-48 7-18 14 5-7 12M-15-8l7 3" fill="none" stroke="#8d9a88" stroke-width="1.5"/>
 </g>`);
-building({ x: 1340, y: 218, width: 185, height: 330, depth: 100, rows: 9, columns: 5, color: '#2b4140', lit: .13 });
-building({ x: 1060, y: 310, width: 173, height: 236, depth: 100, rows: 6, columns: 4, color: '#2a4140', lit: .15 });
-building({ x: 610, y: 365, width: 152, height: 225, depth: 100, rows: 6, columns: 4, color: '#2e4140', lit: .21 });
+building({ house: 'right', x: 1340, y: 218, width: 185, height: 330, depth: 100, rows: 9, columns: 5, color: '#2b4140', lit: .13 });
+building({ house: 'inner', x: 1060, y: 310, width: 173, height: 236, depth: 100, rows: 6, columns: 4, color: '#2a4140', lit: .15 });
+building({ house: 'left', x: 610, y: 365, width: 152, height: 225, depth: 100, rows: 6, columns: 4, color: '#2e4140', lit: .21 });
 city.push(`<path d="m692 593 442 94 175-83 3 17-175 92-446-101Z" fill="#58665b" opacity=".38"/>`);
 city.push(`<path d="m692 612 442 94 175-83v18l-175 92-442-101Z" fill="url(#pavement)"/>`);
-building({ x: 858, y: 240, width: 270, height: 405, depth: 122, rows: 9, columns: 6, color: '#344540', side: '#233a37', roof: '#41514a', lit: .32 });
+building({ house: 'center', x: 858, y: 240, width: 270, height: 405, depth: 122, rows: 9, columns: 6, color: '#344540', side: '#233a37', roof: '#41514a', lit: .32 });
 city.push(`<g transform="translate(875 392) skewY(11.3)" aria-hidden="true" pointer-events="none">
   <path d="M0 0h20v23H0Z" fill="#b39b6e" opacity=".6"/><path d="M-2 24h25" stroke="#8a987e" stroke-width="2"/>
   <g class="cat-figure"><path d="M7 23c-5 0-4-5-2-9 1-3 5-3 7 0l4 9Zm6-2c10 0 8-10 4-8" fill="#172e2e" stroke="#172e2e" stroke-width="2" stroke-linecap="round"/>
@@ -301,14 +333,16 @@ marker(1018, 427, 'Твои мысли', 'pencil', 'notes');
 marker(1172, 363, 'Тихая комната', 'clock', 'focus');
 marker(1110, 538, 'Радио', 'radio', 'live-radio');
 residents.forEach((resident, index) => {
-  const { x, y, width, height } = residentWindows[index];
-  city.push(`<g class="resident-window${index === 0 ? ' is-lit' : ''}" role="button" tabindex="0" aria-label="Записка из окна: ${resident.name}" aria-haspopup="dialog" data-resident="${index}" transform="translate(${x} ${y}) skewY(11.3)">
+  const { x, y, width, height, tilt } = residentWindows[index];
+  city.push(`<g class="resident-window" role="button" tabindex="0" aria-label="Записка из окна: ${resident.name}" aria-haspopup="dialog" data-resident="${index}" transform="translate(${x} ${y})">
     <rect class="resident-hit" x="${width / 2 - 48}" y="${height / 2 - 48}" width="96" height="96" fill="transparent" pointer-events="all"/>
-    <rect width="${width}" height="${height}" fill="#142a2d"/>
-    <g class="resident-light" pointer-events="none"><ellipse cx="${width / 2}" cy="${height / 2}" rx="${width * 1.8}" ry="${height * 1.6}" fill="url(#lamp)"/><rect width="${width}" height="${height}" fill="url(#glass)"/>
-    <path d="M2 0 5 ${height}H0V0M${width - 2} 0l-3 ${height}h5V0" fill="#77694c" opacity=".65"/>
-    <path d="M${width * .3} ${height * .55}h${width * .4}l-${width * .1}-${height * .25}h-${width * .2}Zm${width * .2} 0v${height * .3}m-4 0h8" fill="#f7dfae" stroke="#6a6044" stroke-width=".8"/>
-    </g><path class="resident-frame" d="M0 0h${width}v${height}H0ZM0 ${height + 2}h${width}" fill="none" stroke="#a3946d" stroke-width="1.5"/>
+    <g transform="skewY(${tilt})" aria-hidden="true" pointer-events="none">
+      <rect width="${width}" height="${height}" fill="#142a2d"/>
+      <g class="resident-light"><ellipse cx="${width / 2}" cy="${height / 2}" rx="${width * 1.8}" ry="${height * 1.6}" fill="url(#lamp)"/><rect width="${width}" height="${height}" fill="url(#glass)"/>
+      <path d="M2 0 5 ${height}H0V0M${width - 2} 0l-3 ${height}h5V0" fill="#77694c" opacity=".65"/>
+      <path d="M${width * .3} ${height * .55}h${width * .4}l-${width * .1}-${height * .25}h-${width * .2}Zm${width * .2} 0v${height * .3}m-4 0h8" fill="#f7dfae" stroke="#6a6044" stroke-width=".8"/>
+      </g><path class="resident-frame" d="M0 0h${width}v${height}H0ZM0 ${height + 2}h${width}" fill="none" stroke="#a3946d" stroke-width="1.5"/>
+    </g>
     <g class="resident-letter" transform="translate(${width + 6} 1)" pointer-events="none"><rect x="-2" y="-2" width="20" height="16" rx="3" fill="#223a36"/><path d="M0 0h16v12H0Zm0 0 8 6 8-6" fill="none" stroke="#e6c795" stroke-width="1.3" stroke-linejoin="round"/></g>
   </g>`);
 });
@@ -317,7 +351,7 @@ const cityPalette = { '263b3b': '939d8d', '1c3032': '70817a', '344947': 'aab09b'
 select('#scene').innerHTML = city.join('').replace(/#([0-9a-f]{6})(?![0-9a-f])/gi, (colour, key) => cityPalette[key] ? `var(--city-${key},${colour})` : colour);
 const residentButtons = [...document.querySelectorAll('.resident-window')];
 const lastResidentIndex = residents.findIndex((resident) => resident.notes.some((note) => note.id === lastResidentNote));
-let litResident = lastResidentIndex < 0 ? Math.floor(Math.random() * residents.length) : (lastResidentIndex + 1) % residents.length;
+let litResident;
 const cityTram = select('#city-tram');
 const cityActors = [cityTram, ...document.querySelectorAll('.city-actor')];
 let lastCityActor = 0;
@@ -326,10 +360,12 @@ let cityLifeTick = 0;
 let pageAway = false;
 function scenePaused() { return document.hidden || dialog.open || pageAway || world.classList.contains('city-transitioning') || world.classList.contains('radio-travelling'); }
 function lightResident(index) {
+  if (litResident === index) return;
+  residentButtons[litResident]?.classList.remove('is-lit');
   litResident = index;
-  residentButtons.forEach((button, buttonIndex) => button.classList.toggle('is-lit', buttonIndex === index));
+  residentButtons[index].classList.add('is-lit');
 }
-lightResident(litResident);
+lightResident(lastResidentIndex < 0 ? Math.floor(Math.random() * residents.length) : (lastResidentIndex + 1) % residents.length);
 function advanceCityLife() {
   cityLifeTick++;
   lightResident((litResident + 1) % residents.length);
@@ -1380,17 +1416,8 @@ function changeResidentNote(index, nextResident = false) {
   if (nextResident) residentNoteChange.elements.push(select('.resident-illustration'), select('.resident-signature'));
   animateResidentNote(residentNoteChange, false);
 }
-function reserveResidentSpace(retry = true) {
-  if (!dialog.open || !dialog.classList.contains('resident-dialog') || document.hidden) return;
-  finishResidentNoteChange();
-  const title = select('#room-title');
-  const body = select('.resident-note');
-  const signature = select('.resident-signature');
-  const elements = [title, body, signature];
-  const styles = elements.map((element) => getComputedStyle(element));
-  const widths = styles.map((style) => style.width);
-  const key = styles.flatMap((style) => [style.width, style.font]).join('|');
-  if (residentSizeKey === key) return;
+function measureResidentSpace(elements, widths) {
+  const [title, body, signature] = elements;
   const probe = document.createElement('div');
   probe.className = 'resident-measure';
   probe.setAttribute('aria-hidden', 'true');
@@ -1418,13 +1445,21 @@ function reserveResidentSpace(retry = true) {
   content.append(probe);
   const heights = stacks.map((stack) => stack.offsetHeight + 1);
   probe.remove();
-  elements.forEach((element, column) => { element.style.minHeight = `${heights[column]}px`; });
-  residentSizeKey = key;
+  return heights;
+}
+function reserveResidentSpace(retry = true) {
+  if (!dialog.open || !dialog.classList.contains('resident-dialog') || document.hidden) return;
+  finishResidentNoteChange();
+  const elements = [select('#room-title'), select('.resident-note'), select('.resident-signature')];
+  const styles = elements.map((element) => getComputedStyle(element));
+  const widths = styles.map((style) => style.width);
+  const key = styles.flatMap((style) => [style.width, style.font]).join('|');
+  if (residentLayout?.key !== key) residentLayout = { key, heights: measureResidentSpace(elements, widths) };
+  elements.forEach((element, column) => { element.style.minHeight = `${residentLayout.heights[column]}px`; });
   if (retry && elements.some((element, column) => getComputedStyle(element).width !== widths[column])) reserveResidentSpace(false);
 }
 function residentRoom(index, storyNote) {
   finishResidentNoteChange(false);
-  residentSizeKey = '';
   const resident = residents[index];
   const note = storyNote ? rememberResidentNote(storyNote) : chooseResidentNote(index);
   lightResident(index);
@@ -1736,7 +1771,7 @@ updateVisualViewport();
 window.visualViewport?.addEventListener('resize', updateVisualViewport, { passive: true });
 window.visualViewport?.addEventListener('scroll', updateVisualViewport, { passive: true });
 window.addEventListener('resize', () => { updateVisualViewport(); reserveResidentSpace(); }, { passive: true });
-document.fonts?.ready.then(() => { residentSizeKey = ''; reserveResidentSpace(); });
+document.fonts?.ready.then(() => { residentLayout = undefined; reserveResidentSpace(); });
 window.addEventListener('pagehide', () => { clearInterval(melodyInterval); liveRadioEnabled = false; cancelPendingStation(); pauseStation(); layers.forEach((layer) => layer.track?.element.pause()); if (audio) audio.suspend(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted && audio) { if (playing) { audio.resume().catch(() => {}); if (musicLevel > 0) switchStation(stationIndex).catch(() => toast('Нажми на воспроизведение, чтобы вернуть звук.')); layers.forEach((layer) => startLayer(layer)); } melodyInterval = setInterval(() => { if (playing) playNote(); }, 3200); } });
 select('#account-open').addEventListener('click', () => openRoom('account'));
