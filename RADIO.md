@@ -1,10 +1,11 @@
 # Live radio
 
 The SVG city marker “Радио” opens five live stations. These are continuous
-third-party broadcasts, not local sound loops. The original café scenes and
-30 ambient recordings remain available and can be mixed with the broadcast.
-Choosing a scene replaces the current mix and stops live radio. Its recording
-and the café's synthesized ambience appear as separate mixer controls when used.
+third-party broadcasts, not local sound loops. The 30 ambient recordings remain
+available and can be mixed with the broadcast. The café offers six ready-made
+scenes, including fireplace with rain, night forest, and St. Petersburg metro.
+Choosing a scene replaces the current mix and stops live radio. The scene's
+active sounds appear as separate mixer controls.
 
 ## Radio room
 

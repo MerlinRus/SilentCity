@@ -1053,29 +1053,40 @@ function updateTimer() {
   document.title = timerRunning ? `${String(Math.floor(timerRemaining / 60)).padStart(2, '0')}:${String(timerRemaining % 60).padStart(2, '0')} — После дождя` : 'После дождя — место, где можно выдохнуть';
 }
 setInterval(updateTimer, 1000);
-function sceneLayers(station) {
-  return station.notes.length ? { [station.sound]: .5, ambient: .5 } : { [station.sound]: .5 };
-}
-function isSelectedScene(station, index) {
-  if (stationIndex === index && !layers.some((layer) => layer.level > 0)) return true;
-  const levels = sceneLayers(station);
-  return !musicLevel && layers.every((layer) => layer.level === (levels[layer.id] ?? 0));
+const scenes = [
+  ...stations.flatMap((station, index) => station.sound ? [{
+    name: station.name,
+    description: station.description,
+    legacyStation: index,
+    layers: station.notes.length ? { [station.sound]: .5, ambient: .5 } : { [station.sound]: .5 }
+  }] : []),
+  { name: 'Камин с дождём', description: 'Треск дров и дождь за окном', layers: { fire: .45, rain: .28 } },
+  { name: 'Ночной лес', description: 'Сверчки и ветер в кронах', layers: { crickets: .28, wind: .16 } },
+  { name: 'Питерское метро', description: 'Запись синей ветки', layers: { metro: .5 } }
+];
+function isSelectedScene(scene) {
+  if (stationIndex === scene.legacyStation && !layers.some((layer) => layer.level > 0)) return true;
+  return !musicLevel && layers.every((layer) => layer.level === (scene.layers[layer.id] ?? 0));
 }
 function radioRoom() {
-  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button class="current" aria-current="page">Сцены</button><button id="to-live-radio">Эфир</button><button id="to-mixer">Свой микс</button></nav><h2 id="room-title">У каждого своя волна</h2><p>Гул кафе, стук колёс или море за окном. Выбери место, в котором хочется остаться.</p><div class="station-list">${stations.map((station, index) => ({ ...station, index })).filter((station) => !station.stream).map((station) => { const selected = isSelectedScene(station, station.index); return `<button class="station-choice ${selected ? 'selected' : ''}" data-station="${station.index}" aria-pressed="${selected}">${station.name}<span>${station.description}</span></button>`; }).join('')}</div><p>Добавь камин, ветер или метро во вкладке «Свой микс».<br><a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p><button class="dialog-action" id="radio-toggle">${playing ? 'Выключить звук' : 'Включить звук'}</button>`;
+  const sceneButtons = scenes.map((scene, index) => {
+    const selected = isSelectedScene(scene);
+    return `<button class="station-choice${selected ? ' selected' : ''}" data-scene="${index}" aria-pressed="${selected}">${scene.name}<span>${scene.description}</span></button>`;
+  }).join('');
+  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button class="current" aria-current="page">Сцены</button><button id="to-live-radio">Эфир</button><button id="to-mixer">Свой микс</button></nav><h2 id="room-title">У каждого своя волна</h2><p>Выбери сцену. Громкости можно менять в «Своём миксе».</p><div class="station-list">${sceneButtons}</div><p><a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p><button class="dialog-action" id="radio-toggle">${playing ? 'Выключить звук' : 'Включить звук'}</button>`;
   select('#to-mixer').addEventListener('click', () => openRoom('mixer'));
   select('#to-live-radio').addEventListener('click', () => openRoom('live-radio'));
-  content.querySelectorAll('[data-station]').forEach((button) => button.addEventListener('click', async () => {
-    const index = Number(button.dataset.station);
+  content.querySelectorAll('[data-scene]').forEach((button) => button.addEventListener('click', async () => {
+    const index = Number(button.dataset.scene);
     button.setAttribute('aria-busy', 'true');
     try {
       const radioIndex = stations[stationIndex].stream ? stationIndex : liveStationIndex;
-      await playMix({ station: radioIndex, radio: 0, layers: sceneLayers(stations[index]) });
+      await playMix({ station: radioIndex, radio: 0, layers: scenes[index].layers });
     } catch {
       toast('Не удалось включить сцену. Попробуй ещё раз.');
     } finally {
       if (dialog.open && content.querySelector('#radio-toggle')) {
-        radioRoom(); content.querySelector(`[data-station="${index}"]`)?.focus();
+        radioRoom(); content.querySelector(`[data-scene="${index}"]`)?.focus({ preventScroll: true });
       }
     }
   }));
@@ -1602,7 +1613,7 @@ function openRoom(room, storyNote) {
     updateTimer();
   }
   if (room === 'help') {
-    content.innerHTML = `<span class="room-eyebrow">Добро пожаловать в квартал</span><h2 id="room-title">Здесь можно выдохнуть</h2><p>Нажми на светящуюся метку в городе. В кафе — три звуковые сцены. Под меткой «Радио» — пять музыкальных эфиров. В окне с карандашом — место для мыслей. Под часами — 25 минут тишины для одного дела.</p><p>Ползунки внизу меняют дождь и музыку. «Побыть здесь» убирает заголовок и включает звук.</p><div class="help-keys"><span><kbd>M</kbd>звук</span><span><kbd>F</kbd>весь экран</span><span><kbd>Esc</kbd>назад</span></div>`;
+    content.innerHTML = `<span class="room-eyebrow">Добро пожаловать в квартал</span><h2 id="room-title">Здесь можно выдохнуть</h2><p>Нажми на светящуюся метку в городе. В кафе — шесть готовых сцен. Под меткой «Радио» — пять музыкальных эфиров. В окне с карандашом — место для мыслей. Под часами — 25 минут тишины для одного дела.</p><p>Ползунки внизу меняют дождь и музыку. «Побыть здесь» убирает заголовок и включает звук.</p><div class="help-keys"><span><kbd>M</kbd>звук</span><span><kbd>F</kbd>весь экран</span><span><kbd>Esc</kbd>назад</span></div>`;
   }
   if (!dialog.open) {
     dialog.showModal();
