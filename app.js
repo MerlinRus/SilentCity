@@ -28,6 +28,9 @@ function revealContent(element) {
 }
 const iconPaths = {
   back: 'M20 12H4m6-6-6 6 6 6',
+  bookmark: 'M6 4h12v16l-6-4-6 4Z',
+  play: 'm9 5 11 7-11 7Z',
+  remove: 'm7 7 10 10M17 7 7 17',
   mixer: 'M4 7h6m4 0h6M4 17h10m4 0h2M10 4v6m4 4v6',
   radio: 'M4 8h16v12H4ZM7 8l10-5M8 12v4m-2-2h4m4-2h3m-3 4h3',
   external: 'M7 17 17 7M7 7h10v10',
@@ -510,8 +513,11 @@ try {
     });
   }
 } catch {}
+function mixSnapshot() {
+  return { radio: musicLevel, station: stationIndex, layers: Object.fromEntries(layers.map((layer) => [layer.id, layer.level])) };
+}
 function saveMix() {
-  try { account.set('after-rain-mix-v1', JSON.stringify({ radio: musicLevel, station: stationIndex, layers: Object.fromEntries(layers.map((layer) => [layer.id, layer.level])) })); } catch {}
+  try { account.set('after-rain-mix-v1', JSON.stringify(mixSnapshot())); } catch {}
 }
 function setRangeValue(input, value) {
   input.value = Math.round(value * 100);
@@ -584,21 +590,24 @@ function startLayer(layer) {
   }).finally(() => { clearTimeout(timeout); layer.pending = null; layer.loading = false; syncMixer(); });
   return layer.pending;
 }
-async function setLayerLevel(id, value, updateMix = true) {
-  const layer = layers.find((entry) => entry.id === id);
+function updateLayerLevel(layer, value) {
   layer.level = Math.max(0, Math.min(1, value));
   if (layer.level > 0) layer.lastLevel = layer.level;
   if (layer.track && audio) {
     layer.track.gain.gain.setTargetAtTime(layer.level * .7, audio.currentTime, .1);
     if (!layer.level) setTimeout(() => { if (!layer.level) layer.track.element.pause(); }, 400);
   }
+}
+async function setLayerLevel(id, value, updateMix = true) {
+  const layer = layers.find((entry) => entry.id === id);
+  updateLayerLevel(layer, value);
   if (updateMix) { saveMix(); syncMixer(); }
   if (layer.level > 0) {
     if (!playing) await toggleAudio();
     startLayer(layer);
   }
 }
-function setRadioLevel(value, persist = true) {
+function setRadioLevel(value, persist = true, tune = true) {
   musicLevel = Math.max(0, Math.min(1, value));
   if (!musicLevel) {
     liveRadioEnabled = false;
@@ -607,7 +616,7 @@ function setRadioLevel(value, persist = true) {
   }
   if (audio) {
     musicGain.gain.setTargetAtTime(musicLevel * .8, audio.currentTime, .12);
-    if (musicLevel > 0 && playing && !pendingTrack && (!activeTrack || activeTrack.element.paused)) switchStation(stationIndex).catch(() => {});
+    if (tune && musicLevel > 0 && playing && !pendingTrack && (!activeTrack || activeTrack.element.paused)) switchStation(stationIndex).catch(() => {});
     if (!musicLevel && activeTrack) {
       const track = activeTrack;
       setTimeout(() => { if (!musicLevel && activeTrack === track) { pauseStation(); syncLiveRadio(); } }, 400);
@@ -760,12 +769,12 @@ async function connectStation(index, useFallback = false) {
     syncMixer();
   }
 }
-async function toggleAudio() {
+async function toggleAudio({ tune = true } = {}) {
   if (audioBusy) { cancelPendingStation(); syncLiveRadio(); return; }
   audioBusy = true;
   try {
     if (!audio) makeAudio();
-    if (!playing && musicLevel > 0 && (!stations[stationIndex].stream || liveRadioEnabled) && (!activeTrack || activeTrack.element.paused) && !await switchStation(stationIndex)) return;
+    if (tune && !playing && musicLevel > 0 && (!stations[stationIndex].stream || liveRadioEnabled) && (!activeTrack || activeTrack.element.paused) && !await switchStation(stationIndex)) return;
     await audio.resume();
     playing = !playing;
     if (!playing) { liveRadioEnabled = false; cancelPendingStation(); }
@@ -1175,6 +1184,11 @@ function liveRadioRoom() {
 function mixerRoom() {
   const groups = soundGroups.map((group) => `<section class="mixer-group" data-sound-group="${group.id}" aria-labelledby="sound-group-${group.id}"><h3 id="sound-group-${group.id}">${group.name}</h3>${layers.filter((layer) => layer.group === group.id).map((layer) => `<div class="layer-row" data-layer-row="${layer.id}"><button class="layer-toggle" aria-label="Включить: ${layer.name}" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${layer.icon}"/></svg></button><div class="layer-copy"><span class="layer-name">${layer.name}</span><span class="layer-detail">${layer.detail}</span></div><input type="range" min="0" max="100" value="0" aria-label="Громкость: ${layer.name}"><output>0%</output></div>`).join('')}</section>`).join('');
   content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button id="to-radio">Сцены</button><button id="to-live-radio">Эфир</button><button class="current" aria-current="page">Свой микс</button></nav><h2 id="room-title">Собери своё место</h2><p class="mixer-intro">30 звуков на пять тем.<br>Смешивай и находи свой баланс.</p><label class="mixer-filter"><span>Тема</span><select id="sound-theme"><option value="all">Все темы · 30 звуков</option>${soundGroups.map((group) => `<option value="${group.id}">${group.name} · 6 звуков</option>`).join('')}</select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></label><div class="mixer-list">${groups}<div class="layer-row radio-layer" data-radio-row><button class="layer-toggle" aria-label="Выключить: Ночное радио" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v12H4ZM7 8l10-5M8 12v4m-2-2h4m4-2h3m-3 4h3"/></svg></button><div class="layer-copy"><span class="layer-name">Ночное радио</span><span class="layer-detail">${stations[stationIndex].name}</span></div><input type="range" min="0" max="100" value="45" aria-label="Громкость: Ночное радио"><output>45%</output></div></div><div class="mix-actions"><button class="dialog-action" id="mix-play">Слушать микс</button><button class="mix-clear" id="mix-clear">Выключить всё</button></div><p class="mix-footnote" id="mix-feedback" role="status">Настройки сохраняются в этом браузере. <a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p>`;
+  select('.mixer-intro').insertAdjacentHTML('afterend', `<button type="button" class="dialog-action secondary mixer-favorites" id="mixer-favorites">${svgIcon('bookmark')} Любимые атмосферы</button>`);
+  select('#mixer-favorites').addEventListener('click', () => {
+    openRoom('favorites');
+    select('#favorite-back').focus({ preventScroll: true });
+  });
   select('#to-radio').addEventListener('click', () => openRoom('radio'));
   select('#to-live-radio').addEventListener('click', () => openRoom('live-radio'));
   select('#sound-theme').addEventListener('change', (event) => {
@@ -1196,6 +1210,123 @@ function mixerRoom() {
     if (playing) await toggleAudio();
   });
   syncMixer();
+}
+const favoritesKey = 'after-rain-favorites-v1';
+const favoritesLimit = 24;
+function readFavorites(value) {
+  try {
+    const items = JSON.parse(value)?.items;
+    return Array.isArray(items) ? items.filter((mix) => typeof mix?.name === 'string' && mix.name.trim()
+      && mix.name.length <= 48 && Number.isSafeInteger(mix.station) && mix.station >= 0
+      && Number.isFinite(mix.radio) && mix.radio >= 0 && mix.radio <= 1 && mix.layers
+      && typeof mix.layers === 'object' && !Array.isArray(mix.layers)
+      && Object.values(mix.layers).every((level) => Number.isFinite(level) && level >= 0 && level <= 1)).slice(0, favoritesLimit) : [];
+  } catch { return []; }
+}
+function favoriteSummary(mix) {
+  const station = stations[mix.station]?.name || 'Станция недоступна';
+  const radio = mix.radio > 0 ? `${Math.round(mix.radio * 100)}%` : 'выкл.';
+  return `${station} · радио ${radio}`;
+}
+async function playFavorite(mix) {
+  if (audioBusy) return;
+  cancelPendingStation();
+  if (activeTrack && activeTrack.index !== mix.station) pauseStation();
+  const changed = stationIndex !== mix.station;
+  stationIndex = mix.station;
+  stationFailed = false;
+  radioFailureMessage = '';
+  layers.forEach((layer) => updateLayerLevel(layer, mix.layers[layer.id] ?? 0));
+  setRadioLevel(mix.radio, false, false);
+  liveRadioEnabled = musicLevel > 0 && Boolean(stations[stationIndex].stream);
+  if (changed) changeChord();
+  saveMix();
+
+  if (playing) layers.forEach((layer) => startLayer(layer));
+  else if (musicLevel > 0 || layers.some((layer) => layer.level > 0)) void toggleAudio({ tune: false });
+  if (musicLevel <= 0 || (activeTrack?.index === stationIndex && !activeTrack.element.paused && !activeTrack.element.error && !activeTrack.element.ended)) return true;
+  return switchStation(stationIndex).catch(() => false);
+}
+function favoritesRoom() {
+  content.innerHTML = `
+    <button type="button" class="dialog-action secondary favorite-back" id="favorite-back">${svgIcon('back')} Свой микс</button>
+    <h2 id="room-title">Любимые атмосферы</h2>
+    <form class="favorite-form">
+      <label for="favorite-name">Название атмосферы</label>
+      <div class="favorite-fields"><input id="favorite-name" name="name" required maxlength="48" placeholder="Камин и джаз"><button class="dialog-action" type="submit">Сохранить микс</button></div>
+    </form>
+    <ul class="favorite-list" aria-label="Сохранённые атмосферы"></ul>
+    <p class="favorite-empty">Здесь появятся сохранённые миксы.</p>
+    <p id="favorite-status" class="favorite-status" role="status"></p>
+    ${account.signedIn() ? '' : '<p class="favorite-status">Сейчас миксы сохраняются в этом браузере.</p><button type="button" class="dialog-action secondary" id="favorite-account">Войти для синхронизации</button>'}`;
+  const form = select('.favorite-form');
+  const input = select('#favorite-name');
+  const list = select('.favorite-list');
+  const status = select('#favorite-status');
+  const empty = select('.favorite-empty');
+  let saved = account.get(favoritesKey);
+  let playRequest = 0;
+  const save = (items) => {
+    const value = JSON.stringify({ items });
+    try { account.set(favoritesKey, value); }
+    catch { status.textContent = 'Не удалось сохранить изменения. Попробуй ещё раз.'; return false; }
+    saved = value;
+    render();
+    return true;
+  };
+  function render() {
+    const items = readFavorites(saved);
+    list.replaceChildren();
+    empty.hidden = items.length > 0;
+    items.forEach((mix, index) => {
+      const row = document.createElement('li');
+      row.innerHTML = `<div class="favorite-copy"><strong></strong><span></span></div><button type="button" class="dialog-action secondary">${svgIcon('play')} Пуск</button><button type="button" class="favorite-remove">${svgIcon('remove')}</button>`;
+      row.querySelector('strong').textContent = mix.name;
+      row.querySelector('span').textContent = favoriteSummary(mix);
+      const [play, remove] = row.querySelectorAll('button');
+      play.disabled = !stations[mix.station];
+      play.setAttribute('aria-label', `Пуск: ${mix.name}`);
+      remove.setAttribute('aria-label', `Удалить «${mix.name}»`);
+      play.addEventListener('click', async () => {
+        const request = ++playRequest;
+        status.textContent = 'Настраиваю микс…';
+        const started = await playFavorite(mix).catch(() => false);
+        if (request !== playRequest || !status.isConnected) return;
+        status.textContent = started === undefined ? 'Звук ещё переключается. Нажми «Пуск» ещё раз.' : started
+          ? `Микс «${mix.name}» применён.` : 'Не удалось включить весь микс. Нажми «Пуск», чтобы повторить.';
+      });
+      remove.addEventListener('click', () => {
+        if (!save(items.filter((_, itemIndex) => itemIndex !== index))) return;
+        status.textContent = `Атмосфера «${mix.name}» удалена.`;
+        (list.children[Math.min(index, items.length - 2)]?.querySelector('.favorite-remove') || input).focus();
+      });
+      list.append(row);
+    });
+  }
+  select('#favorite-back').addEventListener('click', () => {
+    openRoom('mixer');
+    select('#mixer-favorites').focus();
+  });
+  select('#favorite-account')?.addEventListener('click', () => openRoom('account'));
+  input.addEventListener('input', () => input.setCustomValidity(''));
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const name = input.value.trim();
+    if (!name) { input.setCustomValidity('Введите название атмосферы.'); input.reportValidity(); return; }
+    const items = readFavorites(saved);
+    if (items.length >= favoritesLimit) { status.textContent = 'Сохранено 24 атмосферы. Удали одну, чтобы освободить место.'; return; }
+    if (!save([{ name, ...mixSnapshot() }, ...items])) return;
+    form.reset();
+    status.textContent = `Атмосфера «${name}» сохранена.`;
+  });
+  render();
+  account.latest(favoritesKey).then((value) => {
+    if (!list.isConnected || value === saved) return;
+    saved = value;
+    render();
+  }).catch(() => {
+    if (status.isConnected) status.textContent = 'Не удалось обновить список. Можно открыть сохранённый на этом устройстве.';
+  });
 }
 function commitResidentNote(change) {
   if (!change || change !== residentNoteChange || change.committed || !dialog.open || !content.contains(change.body)) return;
@@ -1330,6 +1461,7 @@ function openRoom(room, storyNote) {
   if (room === 'weather') weatherRoom();
   if (room === 'cities') cityRoom();
   if (room === 'mixer') mixerRoom();
+  if (room === 'favorites') favoritesRoom();
   if (room === 'resident') residentRoom(litResident, storyNote);
   if (room === 'account') accountRoom(content, location.hash === '#account-error');
   if (room === 'notes') {
@@ -1340,7 +1472,7 @@ function openRoom(room, storyNote) {
     if (account.message()) saveStatus.textContent = account.message();
     const initial = notes.value;
     let edited = false;
-    if (account.signedIn()) account.latestNote().then((value) => {
+    if (account.signedIn()) account.latest('after-rain-notes').then((value) => {
       if (!edited && notes.isConnected && notes.value === initial) notes.value = value || '';
     }).catch(() => {});
     notes.addEventListener('input', (event) => {
@@ -1609,8 +1741,10 @@ window.addEventListener('pagehide', () => { clearInterval(melodyInterval); liveR
 window.addEventListener('pageshow', (event) => { if (event.persisted && audio) { if (playing) { audio.resume().catch(() => {}); if (musicLevel > 0) switchStation(stationIndex).catch(() => toast('Нажми на воспроизведение, чтобы вернуть звук.')); layers.forEach((layer) => startLayer(layer)); } melodyInterval = setInterval(() => { if (playing) playNote(); }, 3200); } });
 select('#account-open').addEventListener('click', () => openRoom('account'));
 document.addEventListener(account.statusEvent, () => {
-  const status = select('#save-status') || select('#account-status');
-  if (status && account.message()) status.textContent = account.message();
+  const message = account.message();
+  const status = select('#save-status') || select('#account-status')
+    || (/не удалась|Сеанс закончился|Выбери версию/.test(message) ? select('#favorite-status') : null);
+  if (status && message) status.textContent = message;
 });
 if (['#account', '#account-error'].includes(location.hash)) {
   openRoom('account');

@@ -1,4 +1,4 @@
-const keys = ['after-rain-notes', 'after-rain-mix-v1', 'after-rain-city-v1', 'after-rain-resident-notes-v1'];
+const keys = ['after-rain-notes', 'after-rain-mix-v1', 'after-rain-favorites-v1', 'after-rain-city-v1', 'after-rain-resident-notes-v1'];
 const marker = 'silentcity-account';
 const draftKey = (userId) => `${marker}-draft-${userId}`;
 const statusEvent = 'silentcity-account-status';
@@ -106,16 +106,16 @@ export const account = {
     clearTimeout(timer);
     timer = setTimeout(() => void flush(), 450);
   },
-  async latestNote() {
-    if (!state.user || pending['after-rain-notes']) return account.get('after-rain-notes');
+  async latest(key) {
+    const userId = state.user?.id;
+    if (!userId || pending[key]) return account.get(key);
     const result = await request();
-    if (result.user?.id !== state.user.id) throw new Error('Session changed');
-    if (!pending['after-rain-notes']) {
-      const key = 'after-rain-notes';
+    if (result.user?.id !== userId || state.user?.id !== userId) throw new Error('Session changed');
+    if (!pending[key]) {
       const entry = result.values[key];
       if (entry && entry.version >= (state.values[key]?.version ?? 0)) state.values[key] = entry;
     }
-    return account.get('after-rain-notes');
+    return account.get(key);
   }
 };
 

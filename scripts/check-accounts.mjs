@@ -11,6 +11,11 @@ const networkFetch = globalThis.fetch;
 const call = (path = '', method = 'GET', body, cookie = '', from = origin) => networkFetch(`${origin}/api/account${path}`, { method, redirect: 'manual', headers: { Origin: from, 'Content-Type': 'application/json', Cookie: cookie }, body: body === undefined ? undefined : JSON.stringify(body) });
 const credentials = { login: 'reader@example.test', password: 'long-test-password' };
 const noteKey = 'after-rain-notes';
+const favoritesKey = 'after-rain-favorites-v1';
+const favorites = [
+  { name: 'Камин и джаз', station: 6, radio: .32, layers: { fire: .6, rain: .12 } },
+  { name: 'Метро без музыки', station: 4, radio: 0, layers: { metro: .5 } }
+];
 
 try {
   const guest = await call();
@@ -38,6 +43,14 @@ try {
   const conflict = await call('', 'PATCH', update, secondCookie);
   assert.equal(conflict.status, 409);
   assert.equal((await conflict.json()).values[noteKey].value, 'Synced from phone');
+  const saveFavorites = (items) => call('', 'PATCH', {
+    userId: user.id, changes: { [favoritesKey]: { value: JSON.stringify({ items }), version: 0 } }
+  }, firstCookie);
+  assert.equal((await saveFavorites([{ ...favorites[0], radio: 2 }])).status, 400);
+  assert.equal((await saveFavorites(Array(25).fill(favorites[0]))).status, 400);
+  assert.equal((await saveFavorites(favorites)).status, 200);
+  const remoteFavorites = (await (await call('', 'GET', undefined, secondCookie)).json()).values[favoritesKey];
+  assert.deepEqual(JSON.parse(remoteFavorites.value).items, favorites);
 
   const google = await call('/google');
   assert.equal(google.status, 303);
@@ -68,7 +81,8 @@ try {
     ['google', '#account', googleSession, googleState.user.id, 'Guest note'],
     ['password', '', secondCookie, user.id, 'Synced from phone']
   ]) {
-    const storage = new Map([[noteKey, 'Guest note'], [mixKey, '{"radio":0.25}']]);
+    const localFavorites = JSON.stringify({ items: [favorites[0]] });
+    const storage = new Map([[noteKey, 'Guest note'], [mixKey, '{"radio":0.25}'], [favoritesKey, localFavorites]]);
     if (!hash) storage.set('silentcity-account', String(id));
     globalThis.localStorage = {
       getItem: (key) => storage.get(key) ?? null,
@@ -92,12 +106,19 @@ try {
     const { values: synced } = await (await call('', 'GET', undefined, cookie)).json();
     assert.equal(synced[noteKey].value, expectedNote);
     assert.equal(synced[mixKey].value, storage.get(mixKey));
+    assert.equal(await account.latest(favoritesKey), hash ? localFavorites : remoteFavorites.value);
+    if (!hash) {
+      const changes = { [favoritesKey]: { value: localFavorites, version: remoteFavorites.version } };
+      assert.equal((await call('', 'PATCH', { userId: user.id, changes }, firstCookie)).status, 200);
+      assert.equal(account.get(favoritesKey), remoteFavorites.value);
+      assert.equal(await account.latest(favoritesKey), localFavorites);
+    }
   }
 
   assert.equal((await call('/logout', 'POST', undefined, firstCookie)).status, 200);
   assert.equal((await (await call('', 'GET', undefined, firstCookie)).json()).user, null);
   assert.equal((await (await call('', 'GET', undefined, secondCookie)).json()).user.id, user.id);
-  console.log('Accounts: automatic import, session isolation, two-browser sync, conflict, origin protection, Google flow and logout passed');
+  console.log('Accounts: favorites validation and sync, automatic import, session isolation, conflict, origin protection, Google flow and logout passed');
 } finally {
   globalThis.fetch = networkFetch;
   server.close();

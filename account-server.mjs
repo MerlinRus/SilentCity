@@ -7,12 +7,20 @@ import { promisify } from 'node:util';
 
 const deriveKey = promisify(scrypt);
 const sessionAge = 30 * 24 * 60 * 60;
-const limits = new Map([['after-rain-notes', 600000], ['after-rain-mix-v1', 16000], ['after-rain-city-v1', 4000], ['after-rain-resident-notes-v1', 8000]]);
+const limits = new Map([['after-rain-notes', 600000], ['after-rain-mix-v1', 16000], ['after-rain-favorites-v1', 65536], ['after-rain-city-v1', 4000], ['after-rain-resident-notes-v1', 8000]]);
 const token = () => randomBytes(32).toString('base64url');
 const digest = (value) => createHash('sha256').update(value).digest('hex');
 const validToken = (value) => typeof value === 'string' && /^[a-zA-Z0-9_-]{43}$/.test(value);
 const readCookie = (request, name) => request.headers.cookie?.split(/;\s*/).find((entry) => entry.startsWith(`${name}=`))?.slice(name.length + 1);
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+const volume = (value) => Number.isFinite(value) && value >= 0 && value <= 1;
+
+function validFavorites(data) {
+  if (!Array.isArray(data.items) || data.items.length > 24) return false;
+  return data.items.every((mix) => object(mix) && typeof mix.name === 'string' && mix.name.trim() && mix.name.length <= 48
+    && Number.isSafeInteger(mix.station) && mix.station >= 0 && volume(mix.radio)
+    && object(mix.layers) && Object.values(mix.layers).every(volume));
+}
 
 function respond(response, status, data) {
   response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }).end(JSON.stringify(data));
@@ -34,7 +42,10 @@ async function readJson(request) {
 function validValue(key, value) {
   if (!limits.has(key) || typeof value !== 'string' || Buffer.byteLength(value) > limits.get(key)) return false;
   if (key === 'after-rain-notes') return true;
-  try { return object(JSON.parse(value)); }
+  try {
+    const data = JSON.parse(value);
+    return object(data) && (key !== 'after-rain-favorites-v1' || validFavorites(data));
+  }
   catch { return false; }
 }
 
