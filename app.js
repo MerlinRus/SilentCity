@@ -1,3 +1,6 @@
+import { account, accountRoom } from './account.js';
+
+await account.ready;
 const select = (selector) => document.querySelector(selector);
 const world = select('#world');
 const dialog = select('#room-dialog');
@@ -92,7 +95,7 @@ const residentNoteIds = new Set(residents.flatMap((resident) => resident.notes.m
 let readResidentNotes = new Set();
 let lastResidentNote = null;
 try {
-  const saved = JSON.parse(localStorage.getItem('after-rain-resident-notes-v1'));
+  const saved = JSON.parse(account.get('after-rain-resident-notes-v1'));
   if (Array.isArray(saved?.read)) readResidentNotes = new Set(saved.read.filter((id) => residentNoteIds.has(id)));
   if (residentNoteIds.has(saved?.last)) lastResidentNote = saved.last;
 } catch {}
@@ -106,7 +109,7 @@ function chooseResidentNote(index) {
   const note = unread[Math.floor(Math.random() * unread.length)];
   readResidentNotes.add(note.id);
   lastResidentNote = note.id;
-  try { localStorage.setItem('after-rain-resident-notes-v1', JSON.stringify({ read: [...readResidentNotes], last: lastResidentNote })); } catch {}
+  try { account.set('after-rain-resident-notes-v1', JSON.stringify({ read: [...readResidentNotes], last: lastResidentNote })); } catch {}
   return note;
 }
 const residentWindows = [];
@@ -465,7 +468,7 @@ const layers = [
   { id: 'snow', group: 'travel', name: 'Шаги по снегу', detail: 'Неторопливая зимняя прогулка', duration: 312, icon: 'M8 3c-4 0-5 9-2 10 4 2 7-9 2-10Zm-3 13 5 1-1 5-5-1Zm12-9c-4 0-5 9-2 10 4 2 7-9 2-10Zm-3 13 5 1', cutoff: 5000 }
 ].map((layer) => ({ ...layer, detail: `${layer.detail} · ${Math.floor(layer.duration / 60)}:${String(layer.duration % 60).padStart(2, '0')}`, level: 0, lastLevel: .35, track: null, pending: null, loading: false, failed: false }));
 try {
-  const saved = JSON.parse(localStorage.getItem('after-rain-mix-v1'));
+  const saved = JSON.parse(account.get('after-rain-mix-v1'));
   if (saved && typeof saved === 'object') {
     if (Number.isFinite(saved.radio)) musicLevel = Math.max(0, Math.min(1, saved.radio));
     if (Number.isInteger(saved.station) && saved.station >= 0 && saved.station < stations.length) stationIndex = saved.station;
@@ -476,7 +479,7 @@ try {
   }
 } catch {}
 function saveMix() {
-  try { localStorage.setItem('after-rain-mix-v1', JSON.stringify({ radio: musicLevel, station: stationIndex, layers: Object.fromEntries(layers.map((layer) => [layer.id, layer.level])) })); } catch {}
+  try { account.set('after-rain-mix-v1', JSON.stringify({ radio: musicLevel, station: stationIndex, layers: Object.fromEntries(layers.map((layer) => [layer.id, layer.level])) })); } catch {}
 }
 function setRangeValue(input, value) {
   input.value = Math.round(value * 100);
@@ -512,7 +515,7 @@ function syncMixer() {
   const mixPlay = select('#mix-play');
   if (mixPlay) mixPlay.textContent = playing ? 'Пауза' : 'Слушать микс';
   const feedback = select('#mix-feedback');
-  if (feedback) feedback.firstChild.textContent = activeCount ? 'Настройки сохраняются в этом браузере. ' : 'Всё выключено. Начни с одного звука. ';
+  if (feedback) feedback.firstChild.textContent = activeCount ? (account.signedIn() ? 'Настройки сохраняются в аккаунте. ' : 'Настройки сохраняются в этом браузере. ') : 'Всё выключено. Начни с одного звука. ';
   select('#station-name').textContent = selectedLayers.length ? 'Свой микс' : stations[stationIndex].name;
   select('.dock-caption').textContent = selectedLayers.length ? 'Твоя атмосфера' : stations[stationIndex].stream ? 'Прямой эфир' : 'Ночные сцены';
   select('#station').setAttribute('aria-label', selectedLayers.length ? 'Открыть свой микс' : 'Сменить радиостанцию');
@@ -1296,13 +1299,24 @@ function openRoom(room) {
   if (room === 'cities') cityRoom();
   if (room === 'mixer') mixerRoom();
   if (room === 'resident') residentRoom(litResident);
+  if (room === 'account') accountRoom(content, location.hash === '#account-error');
   if (room === 'notes') {
-    content.innerHTML = `<span class="room-eyebrow">Окно на четвёртом</span><h2 id="room-title">Оставь это здесь</h2><p>Мысль, которая не даёт уснуть. Идею на завтра. Или пару слов самому себе.</p><label for="notes" class="saved-label">Твои заметки</label><textarea id="notes" placeholder="О чём ты сейчас думаешь?"></textarea><span class="saved-label" id="save-status" role="status">Только в этом браузере. Только для тебя.</span>`;
-    try { select('#notes').value = localStorage.getItem('after-rain-notes') || ''; } catch { select('#save-status').textContent = 'Хранилище недоступно. Скопируй заметку перед закрытием.'; }
-    select('#notes').addEventListener('input', (event) => {
-      try { localStorage.setItem('after-rain-notes', event.target.value); select('#save-status').textContent = 'Сохранено. Можно отпустить.'; }
-      catch { select('#save-status').textContent = 'Не удалось сохранить. Скопируй текст перед закрытием.'; }
+    content.innerHTML = `<span class="room-eyebrow">Окно на четвёртом</span><h2 id="room-title">Оставь это здесь</h2><p>Мысль, которая не даёт уснуть. Идею на завтра. Или пару слов самому себе.</p><label for="notes" class="saved-label">Твои заметки</label><textarea id="notes" placeholder="О чём ты сейчас думаешь?"></textarea><span class="saved-label" id="save-status" role="status">${account.signedIn() ? 'Синхронизируется через аккаунт.' : 'Только в этом браузере.'}</span><button class="dialog-action secondary" id="notes-account">${account.signedIn() ? 'Аккаунт' : 'Войти для синхронизации'}</button>`;
+    const notes = select('#notes');
+    const saveStatus = select('#save-status');
+    notes.value = account.get('after-rain-notes') || '';
+    if (account.message()) saveStatus.textContent = account.message();
+    const initial = notes.value;
+    let edited = false;
+    if (account.signedIn()) account.latestNote().then((value) => {
+      if (!edited && notes.isConnected && notes.value === initial) notes.value = value || '';
+    }).catch(() => {});
+    notes.addEventListener('input', (event) => {
+      edited = true;
+      try { account.set('after-rain-notes', event.target.value); if (!account.signedIn()) saveStatus.textContent = 'Сохранено в этом браузере.'; }
+      catch { saveStatus.textContent = 'Не удалось сохранить. Скопируй текст перед закрытием.'; }
     });
+    select('#notes-account').addEventListener('click', () => openRoom('account'));
   }
   if (room === 'focus') {
     content.innerHTML = `<span class="room-eyebrow">Тихая комната</span><h2 id="room-title">Одно дело. Без суеты</h2><p>Двадцать пять минут для того, что важно сейчас. Остальное подождёт за дверью.</p><div class="timer-display" id="timer-display" role="timer" aria-label="Оставшееся время">25:00</div><button class="dialog-action" id="timer-toggle">Начать</button><button class="dialog-action secondary" id="timer-reset">Сначала</button><p>Можешь закрыть окно — время продолжит идти.</p>`;
@@ -1382,7 +1396,7 @@ const weatherIcons = {
   storm: 'M7 14a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 8M13 12l-4 6h4l-2 5'
 };
 try {
-  weatherLocation = window.CityWeather.validLocation(JSON.parse(localStorage.getItem('after-rain-city-v1'))) || weatherLocation;
+  weatherLocation = window.CityWeather.validLocation(JSON.parse(account.get('after-rain-city-v1'))) || weatherLocation;
   window.CityWeather.configureLocation(weatherLocation);
   const cached = JSON.parse(localStorage.getItem('after-rain-city-weather-v1'));
   if (cached?.locationKey === window.CityWeather.locationKey(weatherLocation)) weatherSnapshot = window.CityWeather.validate(cached.snapshot);
@@ -1401,7 +1415,7 @@ function chooseCity(location) {
     weatherSnapshot = null;
     weatherLocation = valid;
     window.CityWeather.configureLocation(valid);
-    try { localStorage.setItem('after-rain-city-v1', JSON.stringify(valid)); localStorage.removeItem('after-rain-city-weather-v1'); localStorage.removeItem('after-rain-weather-v1'); } catch {}
+    try { account.set('after-rain-city-v1', JSON.stringify(valid)); localStorage.removeItem('after-rain-city-weather-v1'); localStorage.removeItem('after-rain-weather-v1'); } catch {}
   }
   weatherRoom();
   select('#room-title').setAttribute('tabindex', '-1');
@@ -1409,7 +1423,7 @@ function chooseCity(location) {
   updateClock();
 }
 function cityRoom() {
-  content.innerHTML = `<h2 id="room-title" tabindex="-1">В каком ты городе?</h2><p>Небо, погода и часы будут жить по его времени. Наш уютный двор останется прежним.</p><div class="city-presets" aria-label="Быстрый выбор города">${window.CityWeather.presets.map((location, index) => `<button class="dialog-action secondary" data-city-preset="${index}" aria-pressed="${window.CityWeather.locationKey(location) === window.CityWeather.locationKey(weatherLocation)}">${location.name}</button>`).join('')}</div><form class="city-search" id="city-search"><label for="city-query">Или найди свой город</label><div><input id="city-query" name="city" type="search" minlength="2" maxlength="100" required autocomplete="off" placeholder="Например, Владивосток"><button class="dialog-action" type="submit">Найти</button></div></form><p id="city-search-status" role="status" aria-live="polite">Сейчас: ${escapeCityText(weatherLocation.name)}. Выбор сохранится в этом браузере.</p><div id="city-results" class="station-list city-results"></div><p>Геолокацию не запрашиваем. Поиск — только по кнопке, погода — раз в 10 минут в открытой вкладке. Наш сервер передаёт Open-Meteo только запрос города или его координаты, без IP посетителя.</p><p>Названия городов: <a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer">GeoNames ${svgIcon('external')}</a> через <a href="https://open-meteo.com/en/docs/geocoding-api" target="_blank" rel="noopener noreferrer">Open-Meteo</a>.</p><button class="dialog-action secondary" id="city-back">Назад к погоде</button>`;
+  content.innerHTML = `<h2 id="room-title" tabindex="-1">В каком ты городе?</h2><p>Небо, погода и часы будут жить по его времени. Наш уютный двор останется прежним.</p><div class="city-presets" aria-label="Быстрый выбор города">${window.CityWeather.presets.map((location, index) => `<button class="dialog-action secondary" data-city-preset="${index}" aria-pressed="${window.CityWeather.locationKey(location) === window.CityWeather.locationKey(weatherLocation)}">${location.name}</button>`).join('')}</div><form class="city-search" id="city-search"><label for="city-query">Или найди свой город</label><div><input id="city-query" name="city" type="search" minlength="2" maxlength="100" required autocomplete="off" placeholder="Например, Владивосток"><button class="dialog-action" type="submit">Найти</button></div></form><p id="city-search-status" role="status" aria-live="polite">Сейчас: ${escapeCityText(weatherLocation.name)}. ${account.signedIn() ? 'Выбор сохранится в аккаунте.' : 'Выбор сохранится в этом браузере.'}</p><div id="city-results" class="station-list city-results"></div><p>Геолокацию не запрашиваем. Поиск — только по кнопке, погода — раз в 10 минут в открытой вкладке. Наш сервер передаёт Open-Meteo только запрос города или его координаты, без IP посетителя.</p><p>Названия городов: <a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer">GeoNames ${svgIcon('external')}</a> через <a href="https://open-meteo.com/en/docs/geocoding-api" target="_blank" rel="noopener noreferrer">Open-Meteo</a>.</p><button class="dialog-action secondary" id="city-back">Назад к погоде</button>`;
   if (dialog.open) select('#room-title').focus({ preventScroll: true });
   content.querySelectorAll('[data-city-preset]').forEach((button) => button.addEventListener('click', () => chooseCity(window.CityWeather.presets[Number(button.dataset.cityPreset)])));
   select('#city-back').addEventListener('click', weatherRoom);
@@ -1481,7 +1495,7 @@ function weatherRoom() {
   const temperature = frame.temperature === null ? 'Нет данных' : `${frame.temperature > 0 ? '+' : ''}${frame.temperature} °C`;
   const status = !frame.usable ? 'Свежая погода пока недоступна. Не придумываем осадки: часы и освещение продолжают работать для выбранного города.' : frame.stale ? 'Показаны последние доступные данные. Они могут отличаться от погоды сейчас.' : 'Погода для выбранной точки города. Условия в разных районах могут отличаться.';
   const shared = window.CityWeather.locationKey(weatherLocation) === window.CityWeather.locationKey(window.CityWeather.presets[0]);
-  content.innerHTML = `<svg class="weather-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="${climateIcon(frame)}"/></svg><h2 id="room-title" tabindex="-1">${escapeCityText(weatherLocation.name)}</h2><button class="dialog-action secondary city-change" id="city-change">Выбрать другой город ${svgIcon('external')}</button><p>${status}</p><dl class="weather-facts"><div><dt>Температура</dt><dd>${temperature}</dd></div><div><dt>Небо</dt><dd>${frame.label}</dd></div><div><dt>Восход</dt><dd>${frame.sun ? window.CityWeather.formatTime(frame.sun.sunrise * 1000) : 'Нет данных'}</dd></div><div><dt>Закат</dt><dd>${frame.sun ? window.CityWeather.formatTime(frame.sun.sunset * 1000) : 'Нет данных'}</dd></div></dl><p>Местное время — ${window.CityWeather.formatTime(cityNow())}. Часовой пояс: ${escapeCityText(weatherLocation.timezone)}, независимо от настроек устройства. Свет меняется постепенно около восхода и заката.${frame.approximate ? ' Освещение сейчас рассчитано приблизительно по положению Солнца, в том числе для полярного дня и ночи.' : ''}</p><p>Данные: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo ${svgIcon('external')}</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Это оценка погодной модели с шагом 15 минут, не измерение у твоего окна.${weatherSnapshot ? ` Последние данные — ${window.CityWeather.formatDate(weatherSnapshot.observedAt * 1000)}, ${window.CityWeather.formatTime(weatherSnapshot.observedAt * 1000)} по местному времени.` : ''}</p><p>${shared ? 'Для Москвы используется общий серверный кеш.' : 'Погода загружается из Open-Meteo через наш сервер, без передачи IP посетителя.'} Обновление — раз в 10 минут в открытой вкладке. Геолокацию не запрашиваем. Выбор города сохраняется только в этом браузере. Погода меняет картинку, но не выбранные звуки.</p>`;
+  content.innerHTML = `<svg class="weather-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="${climateIcon(frame)}"/></svg><h2 id="room-title" tabindex="-1">${escapeCityText(weatherLocation.name)}</h2><button class="dialog-action secondary city-change" id="city-change">Выбрать другой город ${svgIcon('external')}</button><p>${status}</p><dl class="weather-facts"><div><dt>Температура</dt><dd>${temperature}</dd></div><div><dt>Небо</dt><dd>${frame.label}</dd></div><div><dt>Восход</dt><dd>${frame.sun ? window.CityWeather.formatTime(frame.sun.sunrise * 1000) : 'Нет данных'}</dd></div><div><dt>Закат</dt><dd>${frame.sun ? window.CityWeather.formatTime(frame.sun.sunset * 1000) : 'Нет данных'}</dd></div></dl><p>Местное время — ${window.CityWeather.formatTime(cityNow())}. Часовой пояс: ${escapeCityText(weatherLocation.timezone)}, независимо от настроек устройства. Свет меняется постепенно около восхода и заката.${frame.approximate ? ' Освещение сейчас рассчитано приблизительно по положению Солнца, в том числе для полярного дня и ночи.' : ''}</p><p>Данные: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo ${svgIcon('external')}</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Это оценка погодной модели с шагом 15 минут, не измерение у твоего окна.${weatherSnapshot ? ` Последние данные — ${window.CityWeather.formatDate(weatherSnapshot.observedAt * 1000)}, ${window.CityWeather.formatTime(weatherSnapshot.observedAt * 1000)} по местному времени.` : ''}</p><p>${shared ? 'Для Москвы используется общий серверный кеш.' : 'Погода загружается из Open-Meteo через наш сервер, без передачи IP посетителя.'} Обновление — раз в 10 минут в открытой вкладке. Геолокацию не запрашиваем. ${account.signedIn() ? 'Выбор города сохраняется в аккаунте.' : 'Выбор города сохраняется в этом браузере.'} Погода меняет картинку, но не выбранные звуки.</p>`;
   select('#city-change').addEventListener('click', () => openRoom('cities'));
 }
 async function refreshWeather() {
@@ -1554,3 +1568,12 @@ window.addEventListener('resize', () => { updateVisualViewport(); reserveResiden
 document.fonts?.ready.then(() => { residentSizeKey = ''; reserveResidentSpace(); });
 window.addEventListener('pagehide', () => { clearInterval(melodyInterval); liveRadioEnabled = false; cancelPendingStation(); pauseStation(); layers.forEach((layer) => layer.track?.element.pause()); if (audio) audio.suspend(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted && audio) { if (playing) { audio.resume().catch(() => {}); if (musicLevel > 0) switchStation(stationIndex).catch(() => toast('Нажми на воспроизведение, чтобы вернуть звук.')); layers.forEach((layer) => startLayer(layer)); } melodyInterval = setInterval(() => { if (playing) playNote(); }, 3200); } });
+select('#account-open').addEventListener('click', () => openRoom('account'));
+document.addEventListener(account.statusEvent, () => {
+  const status = select('#save-status') || select('#account-status');
+  if (status && account.message()) status.textContent = account.message();
+});
+if (['#account', '#account-error'].includes(location.hash)) {
+  openRoom('account');
+  history.replaceState(null, '', location.pathname + location.search);
+}

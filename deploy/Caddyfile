@@ -1,4 +1,11 @@
 http://city.maark.ru {
+    handle /api/account* {
+        header Referrer-Policy no-referrer
+        reverse_proxy web:4173 {
+            header_up X-SilentCity-Client {http.request.header.X-Forwarded-For}
+        }
+    }
+
     handle /city-weather {
         @notWeatherRead not method GET
         respond @notWeatherRead "Method not allowed" 405

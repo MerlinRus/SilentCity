@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="radio-room.css">
   <link rel="stylesheet" href="city-life.css">
   <script src="weather.js" defer></script>
-  <script src="app.js" defer></script>
+  <script src="app.js" type="module"></script>
 </head>
 <body>
   <main class="world" id="world">
@@ -31,7 +31,7 @@
     <div class="vignette" aria-hidden="true"></div>
     <header class="header">
       <a class="brand" href="./" aria-label="После дождя, главная"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M22 5A12 12 0 1 0 27 25 14 14 0 0 1 22 5Z"/><path class="drop" d="m26 4-2 4m5 2-2 4"/></svg><span>после дождя</span></a>
-      <div class="header-right"><button class="weather-button" id="weather-open" aria-label="Погода и время Москвы"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="weather-icon" d="M7 17a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 9H7Z"/></svg><span id="weather-label">Москва · погода</span></button><time id="clock" title="Московское время, МСК">--:--</time><button class="icon-button help-button" id="help" aria-label="Об этом месте"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 8a2.5 2.5 0 0 1 5 .3c0 2-2.5 2.2-2.5 4.2M12 17h.01"/></svg></button></div>
+      <div class="header-right"><button class="weather-button" id="weather-open" aria-label="Погода и время Москвы"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="weather-icon" d="M7 17a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 9H7Z"/></svg><span id="weather-label">Москва · погода</span></button><time id="clock" title="Московское время, МСК">--:--</time><button class="icon-button help-button" id="help" aria-label="Об этом месте"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 8a2.5 2.5 0 0 1 5 .3c0 2-2.5 2.2-2.5 4.2M12 17h.01"/></svg></button><button class="icon-button account-button" id="account-open" aria-label="Аккаунт" title="Аккаунт"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.25"/><path d="M5 20v-1a7 7 0 0 1 14 0v1"/></svg></button></div>
     </header>
     <section class="intro" id="intro">
       <div class="place-label"><span></span>Твоё маленькое убежище</div>
