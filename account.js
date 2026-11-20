@@ -175,6 +175,26 @@ function fillProfile(content, showStatus) {
   showStatus(status || 'Синхронизация включена.');
 }
 
+function registrationIssue(field) {
+  if (field.name === 'password') {
+    if (!field.value) return 'Придумай пароль.';
+    if (field.value.length < 8) return 'Нужно хотя бы 8 символов.';
+    if (field.value.length > 128) return 'В пароле должно быть не больше 128 символов.';
+    return '';
+  }
+
+  const login = field.value.trim().toLowerCase();
+  if (!login) return 'Введи логин или почту.';
+  if (login.includes('@')) {
+    if (login.length > 254) return 'Адрес почты слишком длинный.';
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(login) ? '' : 'Проверь адрес почты. Пример — name@example.com.';
+  }
+  if (!/^[a-z0-9_.-]+$/.test(login)) return 'Используй латинские буквы, цифры, точку, дефис или знак подчёркивания.';
+  if (login.length < 3) return 'В логине должно быть хотя бы 3 символа.';
+  if (login.length > 32) return 'В логине должно быть не больше 32 символов.';
+  return '';
+}
+
 export function accountRoom(content, googleError = false) {
   const showStatus = (message) => { const element = content.querySelector('#account-status'); if (element) element.textContent = message; };
   if (state.user) { fillProfile(content, showStatus); return; }
@@ -182,8 +202,16 @@ export function accountRoom(content, googleError = false) {
     <h2 id="room-title">Аккаунт</h2>
     <p>Войди, чтобы открыть свои заметки и настройки на телефоне и компьютере.</p>
     <form class="account-form">
-      <label>Логин или почта<input name="login" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="254"></label>
-      <label>Пароль<input name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128"></label>
+      <div class="account-field">
+        <label for="account-login">Логин или почта</label>
+        <input id="account-login" name="login" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="254" aria-describedby="account-login-error">
+        <span class="account-field-error" id="account-login-error" aria-live="polite"></span>
+      </div>
+      <div class="account-field">
+        <label for="account-password">Пароль</label>
+        <input id="account-password" name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" aria-describedby="account-password-error">
+        <span class="account-field-error" id="account-password-error" aria-live="polite"></span>
+      </div>
       <div class="account-actions">
         <button class="dialog-action" type="submit">Войти</button>
         <button class="dialog-action secondary" type="button" id="account-mode">Создать аккаунт</button>
@@ -204,23 +232,58 @@ export function accountRoom(content, googleError = false) {
   const form = content.querySelector('.account-form');
   const submit = form.querySelector('[type="submit"]');
   const mode = form.querySelector('#account-mode');
+  const { login, password } = form.elements;
+  const registrationFields = [login, password];
   let register = false;
+  const setFieldError = (field, message) => {
+    const error = form.querySelector(`#${field.id}-error`);
+    if (error.textContent !== message) error.textContent = message;
+    if (message) field.setAttribute('aria-invalid', 'true');
+    else field.removeAttribute('aria-invalid');
+  };
+  for (const field of registrationFields) {
+    field.addEventListener('blur', () => {
+      if (register && field.value && !field.hasAttribute('aria-invalid')) setFieldError(field, registrationIssue(field));
+    });
+    field.addEventListener('input', () => {
+      if (register && field.hasAttribute('aria-invalid')) setFieldError(field, registrationIssue(field));
+    });
+  }
   mode.addEventListener('click', () => {
     register = !register;
-    form.elements.password.autocomplete = register ? 'new-password' : 'current-password';
+    form.noValidate = register;
+    password.autocomplete = register ? 'new-password' : 'current-password';
     submit.textContent = register ? 'Зарегистрироваться' : 'Войти';
     mode.textContent = register ? 'Уже есть аккаунт' : 'Создать аккаунт';
-    showStatus(register ? 'Логин — от 3 до 32 латинских букв, цифр или знаков . _ -. Пароль — от 8 символов.' : '');
+    registrationFields.forEach((field) => setFieldError(field, ''));
+    showStatus('');
   });
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const fields = new FormData(form);
-    const payload = { login: fields.get('login'), password: fields.get('password') };
+    if (register) {
+      showStatus('');
+      let firstInvalid;
+      for (const field of registrationFields) {
+        const message = registrationIssue(field);
+        setFieldError(field, message);
+        if (message) firstInvalid ??= field;
+      }
+      if (firstInvalid) { firstInvalid.focus(); return; }
+    }
+    const payload = { login: login.value, password: password.value };
     submit.disabled = mode.disabled = true;
     showStatus('Подключаюсь…');
     try { remember(await request(register ? '/register' : '/login', 'POST', payload)); location.reload(); }
     catch (error) {
       submit.disabled = mode.disabled = false;
+      if (register && error.status === 409) {
+        showStatus('');
+        if (login.value === payload.login) {
+          setFieldError(login, payload.login.includes('@') ? 'Аккаунт с этой почтой уже существует.' : 'Этот логин уже занят.');
+          login.focus();
+        }
+        return;
+      }
       showStatus(({ 400: 'Проверь логин, почту и длину пароля.', 401: 'Логин или пароль не подошли.', 409: 'Этот логин уже занят.', 429: 'Слишком много попыток. Попробуй позже.' })[error.status] || 'Не удалось подключиться. Попробуй ещё раз.');
     }
   });
