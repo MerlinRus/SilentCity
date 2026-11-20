@@ -75,7 +75,15 @@ async function flush(keepalive = false) {
 
 async function restore() {
   if (!stored(marker) && !['#account', '#account-error'].includes(location.hash)) return;
-  try { remember(await request()); if (state.user) void flush(); }
+  try {
+    remember(await request());
+    if (!state.user) return;
+    for (const [key, value] of Object.entries(guestValues())) {
+      if (Object.hasOwn(state.values, key) || Object.hasOwn(pending, key)) continue;
+      try { account.set(key, value); } catch {}
+    }
+    void flush();
+  }
   catch { notify('Аккаунт временно недоступен.'); }
 }
 
@@ -113,7 +121,7 @@ export const account = {
 
 window.addEventListener('online', () => void flush());
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) void flush(true);
+  void flush(document.hidden);
 });
 
 function guestValues() {
@@ -122,7 +130,10 @@ function guestValues() {
     const value = stored(key);
     if (value === null || (key === 'after-rain-notes' && !value)) continue;
     if (key !== 'after-rain-notes') {
-      try { if (!JSON.parse(value)) continue; } catch { continue; }
+      try {
+        const data = JSON.parse(value);
+        if (!data || typeof data !== 'object' || Array.isArray(data)) continue;
+      } catch { continue; }
     }
     values[key] = value;
   }
@@ -130,7 +141,7 @@ function guestValues() {
 }
 
 function fillProfile(content, showStatus) {
-  content.innerHTML = `<h2 id="room-title">Аккаунт</h2><p class="account-name"></p><p>Заметки, звуки и выбранный город доступны после входа на другом устройстве.</p><div class="account-actions"><button class="dialog-action" id="account-refresh">Синхронизировать</button><button class="dialog-action secondary" id="account-logout">Выйти</button></div><p id="account-status" role="status"></p>`;
+  content.innerHTML = `<h2 id="room-title">Аккаунт</h2><p class="account-name"></p><p>Заметки, звуки и выбранный город сохраняются автоматически.</p><div class="account-actions"><button class="dialog-action secondary" id="account-logout">Выйти</button></div><p id="account-status" role="status"></p>`;
   content.querySelector('.account-name').textContent = state.user.name;
   const actions = content.querySelector('.account-actions');
   const addAction = (label, callback) => {
@@ -140,11 +151,6 @@ function fillProfile(content, showStatus) {
     button.addEventListener('click', callback);
     actions.append(button);
   };
-  const imported = Object.entries(guestValues()).filter(([key]) => !Object.hasOwn(state.values, key) && !Object.hasOwn(pending, key));
-  if (imported.length) addAction('Перенести данные из браузера', async () => {
-    for (const [key, value] of imported) if (!Object.hasOwn(state.values, key) && !Object.hasOwn(pending, key)) account.set(key, value);
-    if (await flush()) location.reload(); else fillProfile(content, showStatus);
-  });
   if (conflicts) {
     addAction('Сохранить мои изменения', async () => {
       for (const [key, entry] of Object.entries(pending)) entry.version = state.values[key]?.version ?? 0;
@@ -161,9 +167,6 @@ function fillProfile(content, showStatus) {
       location.reload();
     });
   }
-  content.querySelector('#account-refresh').addEventListener('click', async () => {
-    if (await flush()) location.reload(); else fillProfile(content, showStatus);
-  });
   content.querySelector('#account-logout').addEventListener('click', async () => {
     await flush();
     try { await request('/logout', 'POST'); remember({ user: null }); location.reload(); }
@@ -181,20 +184,13 @@ export function accountRoom(content, googleError = false) {
     <form class="account-form">
       <label>Логин или почта<input name="login" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="254"></label>
       <label>Пароль<input name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128"></label>
-      <label class="account-import" hidden>
-        <span class="account-import-control">
-          <input type="checkbox" name="import">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8 3 3 6-6"/></svg>
-        </span>
-        <span>Перенести данные из этого браузера</span>
-      </label>
       <div class="account-actions">
         <button class="dialog-action" type="submit">Войти</button>
         <button class="dialog-action secondary" type="button" id="account-mode">Создать аккаунт</button>
       </div>
     </form>
     <div class="account-provider" hidden>
-      <a class="account-google" href="/api/account/google">
+      <a class="dialog-action account-google" href="/api/account/google">
         <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
           <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -211,7 +207,6 @@ export function accountRoom(content, googleError = false) {
   let register = false;
   mode.addEventListener('click', () => {
     register = !register;
-    form.querySelector('.account-import').hidden = !register || !Object.keys(guestValues()).length;
     form.elements.password.autocomplete = register ? 'new-password' : 'current-password';
     submit.textContent = register ? 'Зарегистрироваться' : 'Войти';
     mode.textContent = register ? 'Уже есть аккаунт' : 'Создать аккаунт';
@@ -221,7 +216,6 @@ export function accountRoom(content, googleError = false) {
     event.preventDefault();
     const fields = new FormData(form);
     const payload = { login: fields.get('login'), password: fields.get('password') };
-    if (register && fields.has('import')) payload.seed = guestValues();
     submit.disabled = mode.disabled = true;
     showStatus('Подключаюсь…');
     try { remember(await request(register ? '/register' : '/login', 'POST', payload)); location.reload(); }

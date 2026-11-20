@@ -63,10 +63,41 @@ try {
   assert.notEqual(googleState.user.id, user.id);
   assert.deepEqual(googleState.values, {});
 
+  const mixKey = 'after-rain-mix-v1';
+  for (const [flow, hash, cookie, id, expectedNote] of [
+    ['google', '#account', googleSession, googleState.user.id, 'Guest note'],
+    ['password', '', secondCookie, user.id, 'Synced from phone']
+  ]) {
+    const storage = new Map([[noteKey, 'Guest note'], [mixKey, '{"radio":0.25}']]);
+    if (!hash) storage.set('silentcity-account', String(id));
+    globalThis.localStorage = {
+      getItem: (key) => storage.get(key) ?? null,
+      setItem: (key, value) => storage.set(key, value),
+      removeItem: (key) => storage.delete(key)
+    };
+    globalThis.location = { hash };
+    globalThis.window = new EventTarget();
+    globalThis.document = new EventTarget();
+    let patch;
+    globalThis.fetch = (url, options) => {
+      assert.equal(url, '/api/account');
+      const response = call('', options.method, options.body && JSON.parse(options.body), cookie);
+      if (options.method === 'PATCH') patch = response;
+      return response;
+    };
+    const { account } = await import(`../account.js?${flow}`);
+    await account.ready;
+    assert.equal(account.get(noteKey), expectedNote);
+    assert.equal((await patch)?.status, 200);
+    const { values: synced } = await (await call('', 'GET', undefined, cookie)).json();
+    assert.equal(synced[noteKey].value, expectedNote);
+    assert.equal(synced[mixKey].value, storage.get(mixKey));
+  }
+
   assert.equal((await call('/logout', 'POST', undefined, firstCookie)).status, 200);
   assert.equal((await (await call('', 'GET', undefined, firstCookie)).json()).user, null);
   assert.equal((await (await call('', 'GET', undefined, secondCookie)).json()).user.id, user.id);
-  console.log('Accounts: import, session isolation, two-browser sync, conflict, origin protection, Google flow and logout passed');
+  console.log('Accounts: automatic import, session isolation, two-browser sync, conflict, origin protection, Google flow and logout passed');
 } finally {
   globalThis.fetch = networkFetch;
   server.close();
