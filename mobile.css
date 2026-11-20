@@ -408,13 +408,74 @@ button:active { filter: brightness(1.15); }
 .account-button { flex: 0 0 auto; width: 36px; height: 44px; color: inherit; }
 .account-button svg { width: 21px; height: 21px; }
 .account-form { display: grid; gap: 12px; }
-.account-form label { display: grid; gap: 6px; color: var(--ink); font-size: 14px; }
+.account-form label:not([hidden]) { display: grid; gap: 6px; color: var(--ink); font-size: 14px; }
 .account-form input:not([type="checkbox"]) { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #17292b; color: var(--ink); font: inherit; font-size: 16px; }
-.account-form .account-import:not([hidden]) { display: flex; align-items: center; gap: 8px; }
+.account-form .account-import:not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #17292b;
+  cursor: pointer;
+}
+.account-import-control { display: grid; flex: none; place-items: center; }
+.account-import-control input {
+  grid-area: 1 / 1;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border: 1px solid var(--muted);
+  border-radius: 5px;
+  background: transparent;
+  cursor: inherit;
+}
+.account-import-control input:checked { border-color: var(--warm); background: var(--warm); }
+.account-import-control svg {
+  grid-area: 1 / 1;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: #17292b;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  visibility: hidden;
+}
+.account-import-control input:checked + svg { visibility: visible; }
 .account-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .account-actions .dialog-action { margin: 0; min-height: 44px; }
 .account-name { overflow-wrap: anywhere; }
-.account-google:not([hidden]) { display: inline-flex; align-items: center; min-height: 44px; margin-top: 10px; color: var(--warm); text-decoration: underline; }
+.account-provider { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.account-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #8e918f;
+  border-radius: 8px;
+  background: #131314;
+  color: #e3e3e3;
+  font: 500 14px/20px "Google Sans", system-ui, sans-serif;
+  text-decoration: none;
+  text-align: center;
+}
+.account-google svg { flex: none; }
+@media (hover: hover) {
+  .account-form .account-import:not([hidden]):hover { border-color: var(--muted); }
+  .account-google:hover { background: #222223; }
+}
+.account-import-control input:focus-visible, .account-google:focus-visible { outline: 2px solid var(--warm); outline-offset: 2px; }
+@media (forced-colors: active) {
+  .account-import-control input { appearance: auto; }
+  .account-import-control svg { display: none; }
+}
 #account-status:empty { display: none; }
 #notes-account { display: block; margin-top: 12px; }
 @media (max-width: 560px) { .header-right { gap: 7px; } .account-button { width: 32px; } }
