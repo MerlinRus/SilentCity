@@ -485,6 +485,7 @@ const stations = [
 let audio;
 let masterGain;
 let musicGain;
+let ambientGain;
 let voices = [];
 let stationIndex = 0;
 let playing = false;
@@ -508,6 +509,7 @@ const soundGroups = [
   { id: 'travel', name: 'Люди и дорога' }
 ];
 const layers = [
+  { id: 'ambient', group: 'home', name: 'Мягкий эмбиент', detail: 'Тихие аккорды и редкие ноты', icon: iconPaths.music },
   { id: 'rain', group: 'weather', name: 'Дождь в саду', detail: 'Капли на листьях и дорожках', duration: 316, icon: 'M7 14a4 4 0 0 1 0-8 5 5 0 0 1 10-1 4 4 0 0 1 1 9M7 18l-1 3m6-3-1 3m6-3-1 3', cutoff: 3200 },
   { id: 'roof', group: 'weather', name: 'Под крышей', detail: 'Дождь снаружи, укрытие внутри', duration: 298, icon: 'm3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7M3 3 2 5m19-2-1 2', cutoff: 3500 },
   { id: 'tent', group: 'weather', name: 'В палатке', detail: 'Капли по натянутой ткани', duration: 248, icon: 'm2 21 10-17 10 17H2Zm10-17v17m0-9 5 9M4 3 3 5m17-2-1 2', cutoff: 3000 },
@@ -538,7 +540,8 @@ const layers = [
   { id: 'cafe', group: 'travel', name: 'Кофейня', detail: 'Негромкие разговоры и чашки', duration: 292, icon: 'M4 8h12v7a6 6 0 0 1-12 0V8Zm12 1h2a3 3 0 1 1 0 6h-2M3 22h16M7 5V2m5 3V2', cutoff: 4000 },
   { id: 'ferry', group: 'travel', name: 'На пароме', detail: 'Отплытие с открытой палубы', duration: 200, icon: 'm3 14 9-4 9 4-3 5H6l-3-5ZM7 12V6h10v6M12 6V2M2 22q3-3 6 0t6 0 6 0', cutoff: 4000 },
   { id: 'snow', group: 'travel', name: 'Шаги по снегу', detail: 'Неторопливая зимняя прогулка', duration: 312, icon: 'M8 3c-4 0-5 9-2 10 4 2 7-9 2-10Zm-3 13 5 1-1 5-5-1Zm12-9c-4 0-5 9-2 10 4 2 7-9 2-10Zm-3 13 5 1', cutoff: 5000 }
-].map((layer) => ({ ...layer, detail: `${layer.detail} · ${Math.floor(layer.duration / 60)}:${String(layer.duration % 60).padStart(2, '0')}`, level: 0, lastLevel: .35, track: null, pending: null, loading: false, failed: false }));
+].map((layer) => ({ ...layer, detail: layer.duration ? `${layer.detail} · ${Math.floor(layer.duration / 60)}:${String(layer.duration % 60).padStart(2, '0')}` : layer.detail, level: 0, lastLevel: .35, track: null, pending: null, loading: false, failed: false }));
+const ambientLayer = layers.find((layer) => layer.id === 'ambient');
 try {
   const saved = JSON.parse(account.get('after-rain-mix-v1'));
   if (saved && typeof saved === 'object') {
@@ -563,6 +566,8 @@ function setRangeValue(input, value) {
 }
 function syncMixer() {
   const selectedLayers = layers.filter((layer) => layer.level > 0);
+  const themeSelect = select('#sound-theme');
+  const theme = themeSelect?.value;
   const activeCount = selectedLayers.length + (musicLevel > 0 ? 1 : 0);
   select('#sound-status').textContent = !activeCount ? 'Все звуки выключены' : playing ? selectedLayers.length ? `Звуков в миксе: ${activeCount}` : 'Ты на своей волне' : 'Пусть мир подождёт';
   select('#mixer').classList.toggle('has-layers', selectedLayers.length > 0);
@@ -571,6 +576,9 @@ function syncMixer() {
   layers.forEach((layer) => {
     const row = content.querySelector(`[data-layer-row="${layer.id}"]`);
     if (!row) return;
+    const hidden = theme === 'active' && !layer.level;
+    if (hidden && row.contains(document.activeElement)) themeSelect.focus({ preventScroll: true });
+    row.hidden = hidden;
     row.classList.toggle('enabled', layer.level > 0);
     const toggle = row.querySelector('button');
     toggle.setAttribute('aria-pressed', String(layer.level > 0));
@@ -578,6 +586,10 @@ function syncMixer() {
     setRangeValue(row.querySelector('input'), layer.level);
     row.querySelector('output').textContent = `${Math.round(layer.level * 100)}%`;
     row.querySelector('.layer-detail').textContent = layer.failed ? 'Не загрузилось — нажми ещё раз' : layer.loading ? 'Загружаю запись…' : layer.detail;
+  });
+  if (theme) content.querySelectorAll('[data-sound-group]').forEach((group) => {
+    const id = group.dataset.soundGroup;
+    group.hidden = theme === 'active' ? !selectedLayers.some((layer) => layer.group === id) : theme !== 'all' && theme !== id;
   });
   const radioRow = content.querySelector('[data-radio-row]');
   if (radioRow) {
@@ -606,7 +618,7 @@ function createLayerTrack(layer) {
   return { element, source, filter, gain };
 }
 function startLayer(layer) {
-  if (!playing || layer.level === 0) return Promise.resolve();
+  if (!playing || layer.level === 0 || layer === ambientLayer) return Promise.resolve();
   if (!layer.track) layer.track = createLayerTrack(layer);
   layer.track.gain.gain.setTargetAtTime(layer.level * .7, audio.currentTime, .12);
   if (layer.pending) return layer.pending;
@@ -627,6 +639,7 @@ function startLayer(layer) {
 function updateLayerLevel(layer, value) {
   layer.level = Math.max(0, Math.min(1, value));
   if (layer.level > 0) layer.lastLevel = layer.level;
+  if (layer === ambientLayer) syncAmbient();
   if (layer.track && audio) {
     layer.track.gain.gain.setTargetAtTime(layer.level * .7, audio.currentTime, .1);
     if (!layer.level) setTimeout(() => { if (!layer.level) layer.track.element.pause(); }, 400);
@@ -651,6 +664,7 @@ function setRadioLevel(value, persist = true, tune = true) {
   }
   if (audio) {
     musicGain.gain.setTargetAtTime(musicLevel * .8, audio.currentTime, .12);
+    syncAmbient();
     if (tune && musicLevel > 0 && playing && !pendingTrack && (!activeTrack || activeTrack.element.paused)) switchStation(stationIndex).catch(() => {});
     if (!musicLevel && activeTrack) {
       const track = activeTrack;
@@ -672,35 +686,42 @@ function makeAudio() {
   const compressor = audio.createDynamicsCompressor();
   masterGain.connect(compressor); compressor.connect(audio.destination);
   musicGain = audio.createGain(); musicGain.gain.value = musicLevel * .8; musicGain.connect(masterGain);
-  changeChord();
+  ambientGain = audio.createGain(); ambientGain.gain.value = 0; ambientGain.connect(masterGain);
+  syncAmbient();
   melodyInterval = setInterval(() => { if (playing) playNote(); }, 3200);
 }
-function changeChord() {
+function syncAmbient() {
   if (!audio) return;
   const now = audio.currentTime;
+  // Existing mixes can still carry the café's tones on the station channel.
+  const legacyLevel = stations[stationIndex].notes.length ? musicLevel * .8 : 0;
+  const level = Math.max(legacyLevel, ambientLayer.level * .7);
+  ambientGain.gain.setTargetAtTime(level, now, .12);
+  if (Boolean(level) === Boolean(voices.length)) return;
   voices.forEach(({ oscillator, gain }) => {
     gain.gain.cancelScheduledValues(now); gain.gain.setTargetAtTime(0, now, .2); oscillator.stop(now + 1);
   });
-  voices = stations[stationIndex].notes.map((frequency, index) => {
+  const cafe = stations[0];
+  voices = (level ? cafe.notes : []).map((frequency, index) => {
     const oscillator = audio.createOscillator(); const gain = audio.createGain();
-    oscillator.type = stations[stationIndex].wave; oscillator.frequency.value = frequency / 2;
+    oscillator.type = cafe.wave; oscillator.frequency.value = frequency / 2;
     oscillator.detune.value = index % 2 ? 4 : -4; gain.gain.value = 0;
     gain.gain.setTargetAtTime(.06, now, 1.5 + index * .3);
-    oscillator.connect(gain); gain.connect(musicGain); oscillator.start();
+    oscillator.connect(gain); gain.connect(ambientGain); oscillator.start();
     oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
     return { oscillator, gain };
   });
 }
 function playNote() {
-  if (!playing || musicLevel <= 0 || audio.state !== 'running' || !stations[stationIndex].notes.length) return;
+  if (!playing || !voices.length || audio.state !== 'running') return;
   const now = audio.currentTime;
   const oscillator = audio.createOscillator(); const envelope = audio.createGain();
-  const frequencies = stations[stationIndex].notes;
+  const frequencies = stations[0].notes;
   oscillator.frequency.value = frequencies[Math.floor(Math.random() * frequencies.length)] * (Math.random() > .6 ? 2 : 1);
   oscillator.type = 'sine'; envelope.gain.setValueAtTime(0, now);
   envelope.gain.linearRampToValueAtTime(.12, now + .3);
   envelope.gain.exponentialRampToValueAtTime(.001, now + 5);
-  oscillator.connect(envelope); envelope.connect(musicGain); oscillator.start(); oscillator.stop(now + 5.1);
+  oscillator.connect(envelope); envelope.connect(ambientGain); oscillator.start(); oscillator.stop(now + 5.1);
   oscillator.onended = () => { oscillator.disconnect(); envelope.disconnect(); };
 }
 function disposeTrack(track) {
@@ -794,7 +815,7 @@ async function connectStation(index, useFallback = false) {
     stationFailed = false;
     if (station.stream) liveStationIndex = index;
     select('#station-name').textContent = stations[index].name;
-    changeChord();
+    syncAmbient();
     saveMix();
     const reportInterruption = () => {
       if (activeTrack !== track || track.disposed) return;
@@ -1032,20 +1053,26 @@ function updateTimer() {
   document.title = timerRunning ? `${String(Math.floor(timerRemaining / 60)).padStart(2, '0')}:${String(timerRemaining % 60).padStart(2, '0')} — После дождя` : 'После дождя — место, где можно выдохнуть';
 }
 setInterval(updateTimer, 1000);
+function sceneLayers(station) {
+  return station.notes.length ? { [station.sound]: .5, ambient: .5 } : { [station.sound]: .5 };
+}
+function isSelectedScene(station, index) {
+  if (stationIndex === index && !layers.some((layer) => layer.level > 0)) return true;
+  const levels = sceneLayers(station);
+  return !musicLevel && layers.every((layer) => layer.level === (levels[layer.id] ?? 0));
+}
 function radioRoom() {
-  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button class="current" aria-current="page">Сцены</button><button id="to-live-radio">Эфир</button><button id="to-mixer">Свой микс</button></nav><h2 id="room-title">У каждого своя волна</h2><p>Гул кафе, стук колёс или море за окном. Выбери место, в котором хочется остаться.</p><div class="station-list">${stations.map((station, index) => ({ ...station, index })).filter((station) => !station.stream).map((station) => `<button class="station-choice ${station.index === stationIndex ? 'selected' : ''}" data-station="${station.index}" aria-pressed="${station.index === stationIndex}">${station.name}<span>${station.description}</span></button>`).join('')}</div><p>Добавь камин, ветер или метро во вкладке «Свой микс».<br><a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p><button class="dialog-action" id="radio-toggle">${playing ? 'Выключить звук' : 'Включить звук'}</button>`;
+  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button class="current" aria-current="page">Сцены</button><button id="to-live-radio">Эфир</button><button id="to-mixer">Свой микс</button></nav><h2 id="room-title">У каждого своя волна</h2><p>Гул кафе, стук колёс или море за окном. Выбери место, в котором хочется остаться.</p><div class="station-list">${stations.map((station, index) => ({ ...station, index })).filter((station) => !station.stream).map((station) => { const selected = isSelectedScene(station, station.index); return `<button class="station-choice ${selected ? 'selected' : ''}" data-station="${station.index}" aria-pressed="${selected}">${station.name}<span>${station.description}</span></button>`; }).join('')}</div><p>Добавь камин, ветер или метро во вкладке «Свой микс».<br><a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p><button class="dialog-action" id="radio-toggle">${playing ? 'Выключить звук' : 'Включить звук'}</button>`;
   select('#to-mixer').addEventListener('click', () => openRoom('mixer'));
   select('#to-live-radio').addEventListener('click', () => openRoom('live-radio'));
   content.querySelectorAll('[data-station]').forEach((button) => button.addEventListener('click', async () => {
     const index = Number(button.dataset.station);
     button.setAttribute('aria-busy', 'true');
-    button.querySelector('span').textContent = 'Загружаю запись…';
     try {
-      const changed = await switchStation(index);
-      if (changed && !musicLevel) setRadioLevel(.45);
-      if (changed && !playing) await toggleAudio();
+      const radioIndex = stations[stationIndex].stream ? stationIndex : liveStationIndex;
+      await playMix({ station: radioIndex, radio: 0, layers: sceneLayers(stations[index]) });
     } catch {
-      return;
+      toast('Не удалось включить сцену. Попробуй ещё раз.');
     } finally {
       if (dialog.open && content.querySelector('#radio-toggle')) {
         radioRoom(); content.querySelector(`[data-station="${index}"]`)?.focus();
@@ -1120,7 +1147,7 @@ function chooseLiveStation(index) {
   stationIndex = liveStationIndex = index;
   stationFailed = false;
   radioFailureMessage = '';
-  changeChord();
+  syncAmbient();
   saveMix();
   syncMixer();
 }
@@ -1267,7 +1294,7 @@ function liveRadioRoom() {
 }
 function mixerRoom() {
   const groups = soundGroups.map((group) => `<section class="mixer-group" data-sound-group="${group.id}" aria-labelledby="sound-group-${group.id}"><h3 id="sound-group-${group.id}">${group.name}</h3>${layers.filter((layer) => layer.group === group.id).map((layer) => `<div class="layer-row" data-layer-row="${layer.id}"><button class="layer-toggle" aria-label="Включить: ${layer.name}" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${layer.icon}"/></svg></button><div class="layer-copy"><span class="layer-name">${layer.name}</span><span class="layer-detail">${layer.detail}</span></div><input type="range" min="0" max="100" value="0" aria-label="Громкость: ${layer.name}"><output>0%</output></div>`).join('')}</section>`).join('');
-  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button id="to-radio">Сцены</button><button id="to-live-radio">Эфир</button><button class="current" aria-current="page">Свой микс</button></nav><h2 id="room-title">Собери своё место</h2><p class="mixer-intro">30 звуков на пять тем.<br>Смешивай и находи свой баланс.</p><label class="mixer-filter"><span>Тема</span><select id="sound-theme"><option value="all">Все темы · 30 звуков</option>${soundGroups.map((group) => `<option value="${group.id}">${group.name} · 6 звуков</option>`).join('')}</select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></label><div class="mixer-list"><div class="layer-row radio-layer" data-radio-row><button type="button" class="layer-toggle" aria-label="Включить радио" aria-pressed="false">${svgIcon('play')}</button><div class="layer-copy"><span class="layer-name">Радио</span><span class="layer-detail" role="status">${stations[stationIndex].name}</span></div><input type="range" min="0" max="100" value="45" aria-label="Громкость радио в микшере"><output>45%</output></div>${groups}</div><div class="mix-actions"><button class="dialog-action" id="mix-play">Слушать микс</button><button class="mix-clear" id="mix-clear">Выключить всё</button></div><p class="mix-footnote" id="mix-feedback" role="status">Настройки сохраняются в этом браузере. <a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p>`;
+  content.innerHTML = `<nav class="sound-tabs" aria-label="Настройки звука"><button id="to-radio">Сцены</button><button id="to-live-radio">Эфир</button><button class="current" aria-current="page">Свой микс</button></nav><h2 id="room-title">Собери своё место</h2><p class="mixer-intro">30 записей и мягкий эмбиент.<br>Смешивай и находи свой баланс.</p><label class="mixer-filter"><span>Тема</span><select id="sound-theme"><option value="all">Все темы</option><option value="active">Включённые звуки</option>${soundGroups.map((group) => `<option value="${group.id}">${group.name}</option>`).join('')}</select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></label><div class="mixer-list"><div class="layer-row radio-layer" data-radio-row><button type="button" class="layer-toggle" aria-label="Включить радио" aria-pressed="false">${svgIcon('play')}</button><div class="layer-copy"><span class="layer-name">Радио</span><span class="layer-detail" role="status">${stations[stationIndex].name}</span></div><input type="range" min="0" max="100" value="45" aria-label="Громкость радио в микшере"><output>45%</output></div>${groups}</div><div class="mix-actions"><button class="dialog-action" id="mix-play">Слушать микс</button><button class="mix-clear" id="mix-clear">Выключить всё</button></div><p class="mix-footnote" id="mix-feedback" role="status">Настройки сохраняются в этом браузере. <a href="sounds/credits.html" target="_blank" rel="noopener">Звуки и авторы ${svgIcon('external')}</a></p>`;
   select('.mixer-intro').insertAdjacentHTML('afterend', `<button type="button" class="dialog-action secondary mixer-favorites" id="mixer-favorites">${svgIcon('bookmark')} Любимые атмосферы</button>`);
   select('#mixer-favorites').addEventListener('click', () => {
     openRoom('favorites');
@@ -1275,8 +1302,9 @@ function mixerRoom() {
   });
   select('#to-radio').addEventListener('click', () => openRoom('radio'));
   select('#to-live-radio').addEventListener('click', () => openRoom('live-radio'));
-  select('#sound-theme').addEventListener('change', (event) => {
-    content.querySelectorAll('[data-sound-group]').forEach((group) => { group.hidden = event.target.value !== 'all' && group.dataset.soundGroup !== event.target.value; });
+  select('#sound-theme').value = layers.some((layer) => layer.level > 0) ? 'active' : 'all';
+  select('#sound-theme').addEventListener('change', () => {
+    syncMixer();
     select('.mixer-list').scrollTop = 0;
   });
   layers.forEach((layer) => {
@@ -1312,23 +1340,21 @@ function favoriteSummary(mix) {
   const radio = mix.radio > 0 ? `${Math.round(mix.radio * 100)}%` : 'выкл.';
   return `${station} · радио ${radio}`;
 }
-async function playFavorite(mix) {
+async function playMix(mix) {
   if (audioBusy) return;
   cancelPendingStation();
-  if (activeTrack && activeTrack.index !== mix.station) pauseStation();
-  const changed = stationIndex !== mix.station;
+  if (activeTrack && (activeTrack.index !== mix.station || !mix.radio)) pauseStation();
   stationIndex = mix.station;
   stationFailed = false;
   radioFailureMessage = '';
   layers.forEach((layer) => updateLayerLevel(layer, mix.layers[layer.id] ?? 0));
   setRadioLevel(mix.radio, false, false);
   liveRadioEnabled = musicLevel > 0 && Boolean(stations[stationIndex].stream);
-  if (changed) changeChord();
   saveMix();
 
   if (playing) layers.forEach((layer) => startLayer(layer));
-  else if (musicLevel > 0 || layers.some((layer) => layer.level > 0)) void toggleAudio({ tune: false });
-  if (musicLevel <= 0 || stationIsPlaying(stationIndex)) return true;
+  const resume = !playing && (musicLevel > 0 || layers.some((layer) => layer.level > 0)) ? toggleAudio({ tune: false }) : null;
+  if (musicLevel <= 0 || stationIsPlaying(stationIndex)) { await resume; return true; }
   return switchStation(stationIndex).catch(() => false);
 }
 function favoritesRoom() {
@@ -1374,7 +1400,7 @@ function favoritesRoom() {
       play.addEventListener('click', async () => {
         const request = ++playRequest;
         status.textContent = 'Настраиваю микс…';
-        const started = await playFavorite(mix).catch(() => false);
+        const started = await playMix(mix).catch(() => false);
         if (request !== playRequest || !status.isConnected) return;
         status.textContent = started === undefined ? 'Звук ещё переключается. Нажми «Пуск» ещё раз.' : started
           ? `Микс «${mix.name}» применён.` : 'Не удалось включить весь микс. Нажми «Пуск», чтобы повторить.';
